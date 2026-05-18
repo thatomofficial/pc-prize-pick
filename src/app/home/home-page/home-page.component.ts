@@ -24,4 +24,4 @@ import { SiteFooterComponent } from '../_shared/components/site-footer/site-foot
   templateUrl: './home-page.component.html',
   styleUrl: './home-page.component.scss'
 })
-export class HomePageComponent {}
+export class HomePageComponent { }

@@ -15,28 +15,28 @@
 
     <ol class="tiers__list" role="list">
       @for (t of tiers; track t.id; let i = $index) {
-        <li class="tiers__row">
-          <span class="tiers__number t-mono">{{ '0' + (i + 1) }}</span>
-          <div class="tiers__label">
-            <h3 class="tiers__name">{{ t.label }}</h3>
-            <p class="tiers__desc">{{ t.description }}</p>
-          </div>
-          <div class="tiers__price">
-            <span class="t-overline">From</span>
-            <span class="tiers__price-val t-mono">
-              {{ t.entryPriceCents / 100 | currency: 'ZAR' : 'symbol' : '1.0-0' : 'en-ZA' }}
-            </span>
-          </div>
-          <div class="tiers__value">
-            <span class="t-overline">Up to</span>
-            <span class="tiers__value-val t-mono">
-              {{ t.prizeValueCents / 100 | currency: 'ZAR' : 'symbol' : '1.0-0' : 'en-ZA' }}
-            </span>
-          </div>
-          <a class="tiers__cta" [href]="'#competitions'" [attr.aria-label]="'Browse ' + t.label">
-            <span aria-hidden="true">↗</span>
-          </a>
-        </li>
+      <li class="tiers__row">
+        <span class="tiers__number t-mono">{{ '0' + (i + 1) }}</span>
+        <div class="tiers__label">
+          <h3 class="tiers__name">{{ t.label }}</h3>
+          <p class="tiers__desc">{{ t.description }}</p>
+        </div>
+        <div class="tiers__price">
+          <span class="t-overline">From</span>
+          <span class="tiers__price-val t-mono">
+            {{ t.entryPriceCents / 100 | currency: 'ZAR' : 'symbol' : '1.0-0' : 'en-ZA' }}
+          </span>
+        </div>
+        <div class="tiers__value">
+          <span class="t-overline">Up to</span>
+          <span class="tiers__value-val t-mono">
+            {{ t.prizeValueCents / 100 | currency: 'ZAR' : 'symbol' : '1.0-0' : 'en-ZA' }}
+          </span>
+        </div>
+        <a class="tiers__cta" [href]="'#competitions'" [attr.aria-label]="'Browse ' + t.label">
+          <span aria-hidden="true">↗</span>
+        </a>
+      </li>
       }
     </ol>
   </div>
