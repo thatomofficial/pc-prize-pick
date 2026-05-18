@@ -1,0 +1,21 @@
+<aside class="ticker" aria-label="Recent winners">
+  <span class="ticker__label t-overline">
+    <span class="u-live-dot"></span>
+    <span>Live · winners feed</span>
+  </span>
+  <div class="ticker__viewport">
+    <ul class="ticker__track" role="list">
+      @for (w of doubled; track $index) {
+        <li class="ticker__item">
+          <span class="ticker__name">{{ w.initials }}. {{ w.surname }}</span>
+          <span class="ticker__sep">·</span>
+          <span class="ticker__city">{{ w.city }}</span>
+          <span class="ticker__sep">→</span>
+          <span class="ticker__prize">{{ w.prizeName }}</span>
+          <span class="ticker__sep">·</span>
+          <span class="ticker__time t-mono">{{ formatAgo(w.awardedAt) }}</span>
+        </li>
+      }
+    </ul>
+  </div>
+</aside>

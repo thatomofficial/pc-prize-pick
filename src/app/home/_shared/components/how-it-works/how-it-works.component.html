@@ -1,0 +1,39 @@
+<section id="how" class="how">
+  <div class="u-container">
+    <header class="how__header">
+      <span class="t-overline t-overline--volt">§ 04 · The mechanism</span>
+      <h2 class="how__heading">
+        Skill-based.<br />
+        <em class="how__heading-em">No luck</em> in the loop.
+      </h2>
+    </header>
+
+    <ol class="how__steps" role="list">
+      @for (s of steps; track s.num) {
+        <li class="how__step">
+          <span class="how__step-num t-mono">{{ s.num }}</span>
+          <div class="how__step-body">
+            <h3 class="how__step-title">{{ s.title }}</h3>
+            <p class="how__step-text">{{ s.body }}</p>
+            <p class="how__step-detail t-overline">{{ s.detail }}</p>
+          </div>
+        </li>
+      }
+    </ol>
+
+    <aside class="how__guarantee">
+      <div class="how__guarantee-mark" aria-hidden="true">
+        <span class="t-mono">SA · §17</span>
+      </div>
+      <div>
+        <h3 class="how__guarantee-title">Operating under SA competition law.</h3>
+        <p class="how__guarantee-body">
+          Every draw is governed by South African competition statutes,
+          audited by an independent firm, and resolved in SA courts. The
+          skill mechanic is a <em>Spot-the-Pixel</em> precision task &mdash;
+          the closest answer wins, ties are settled by entry timestamp.
+        </p>
+      </div>
+    </aside>
+  </div>
+</section>

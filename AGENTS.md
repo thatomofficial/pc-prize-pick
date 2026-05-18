@@ -94,9 +94,10 @@ provider is changed later:
 - BEM naming: `block`, `block__element`, `block--modifier`,
   `block__element--modifier`.
 - Component selectors use the `app-` prefix.
-- Component templates and styles are inline (in the `@Component` decorator).
-  This is the current convention; reach for separate files only when a template
-  or stylesheet exceeds ~300 lines.
+- **Every component has three sibling files** — `<name>.component.ts`,
+  `<name>.component.html`, `<name>.component.scss` — referenced via
+  `templateUrl` and `styleUrl` on the `@Component` decorator. Inline `template:`
+  / `styles:` strings are not used at any size, even for trivial components.
 
 ### Mock data
 `MockCompetitionsService` returns hand-tuned `Competition`, `CompetitionTier`,

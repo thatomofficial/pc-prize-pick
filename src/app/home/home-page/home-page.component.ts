@@ -21,24 +21,7 @@ import { SiteFooterComponent } from '../_shared/components/site-footer/site-foot
     SocialProofComponent,
     SiteFooterComponent
   ],
-  template: `
-    <app-site-nav />
-    <main>
-      <app-home-hero />
-      <app-winners-ticker />
-      <app-featured-competitions />
-      <app-prize-tiers />
-      <app-how-it-works />
-      <app-social-proof />
-    </main>
-    <app-site-footer />
-  `,
-  styles: `
-    :host {
-      display: block;
-      background: var(--ink-900);
-      color: var(--cream-100);
-    }
-  `
+  templateUrl: './home-page.component.html',
+  styleUrl: './home-page.component.scss'
 })
 export class HomePageComponent {}

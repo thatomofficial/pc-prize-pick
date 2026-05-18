@@ -1,0 +1,86 @@
+<article class="card"
+  [class.card--closing]="competition().status === 'closing-soon'"
+  [style.--hue]="competition().accentHue">
+
+  <header class="card__header">
+    <span class="card__status t-overline">
+      @if (competition().status === 'closing-soon') {
+        <span class="u-live-dot card__status-dot card__status-dot--signal"></span>
+        <span>Closing soon</span>
+      } @else if (competition().status === 'live') {
+        <span class="u-live-dot card__status-dot"></span>
+        <span>Live</span>
+      } @else {
+        <span>{{ competition().status }}</span>
+      }
+    </span>
+    <span class="card__id t-mono">№ {{ competition().id }}</span>
+  </header>
+
+  <div class="card__art" aria-hidden="true">
+    <div class="card__art-frame">
+      <span class="card__art-band card__art-band--1"></span>
+      <span class="card__art-band card__art-band--2"></span>
+      <span class="card__art-band card__art-band--3"></span>
+      <span class="card__art-mark t-mono">{{ shortName() }}</span>
+    </div>
+  </div>
+
+  <h3 class="card__name">{{ competition().name }}</h3>
+  <p class="card__tagline">{{ competition().buildTagline }}</p>
+
+  <dl class="card__specs">
+    <div>
+      <dt>GPU</dt>
+      <dd>{{ competition().specs.gpu }}</dd>
+    </div>
+    <div>
+      <dt>CPU</dt>
+      <dd>{{ competition().specs.cpu }}</dd>
+    </div>
+    <div>
+      <dt>RAM</dt>
+      <dd>{{ competition().specs.ram }}</dd>
+    </div>
+    <div>
+      <dt>SSD</dt>
+      <dd>{{ competition().specs.storage }}</dd>
+    </div>
+  </dl>
+
+  <div class="card__meter" [style.--progress]="progress() + '%'">
+    <span class="card__meter-track">
+      <span class="card__meter-fill"></span>
+    </span>
+    <span class="card__meter-text">
+      <span class="t-mono">{{ competition().entriesSold | number }}</span>
+      <span class="t-muted"> of {{ competition().totalEntries | number }} entries</span>
+    </span>
+  </div>
+
+  <footer class="card__foot">
+    <div class="card__foot-left">
+      <div class="card__money">
+        <span class="t-overline">Value</span>
+        <span class="card__money-val">
+          {{ competition().prizeValueCents / 100 | currency: 'ZAR' : 'symbol' : '1.0-0' : 'en-ZA' }}
+        </span>
+      </div>
+      <div class="card__money">
+        <span class="t-overline">Entry</span>
+        <span class="card__money-val card__money-val--volt">
+          {{ competition().entryPriceCents / 100 | currency: 'ZAR' : 'symbol' : '1.2-2' : 'en-ZA' }}
+        </span>
+      </div>
+    </div>
+    <div class="card__foot-right">
+      <span class="t-overline">Closes</span>
+      <app-countdown class="card__countdown" [target]="competition().closesAt" />
+    </div>
+  </footer>
+
+  <a class="card__cta" [href]="'/competitions/' + competition().slug">
+    <span>Enter from R{{ competition().entryPriceCents / 100 | number: '1.2-2' }}</span>
+    <span class="card__cta-arrow" aria-hidden="true">→</span>
+  </a>
+</article>

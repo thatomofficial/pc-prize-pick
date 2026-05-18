@@ -1,0 +1,70 @@
+<section id="winners" class="proof">
+  <div class="u-container">
+    <header class="proof__header">
+      <span class="t-overline t-overline--volt">§ 05 · The receipts</span>
+      <h2 class="proof__heading">
+        52 184 builders.<br />
+        <em class="proof__heading-em">R12.4M</em> in parts.
+      </h2>
+    </header>
+
+    <div class="proof__grid">
+      <article class="proof__quote">
+        <span class="proof__mark" aria-hidden="true">&ldquo;</span>
+        <blockquote class="proof__quote-text">
+          I&rsquo;d been pricing the build for six months. Won the
+          Threadripper rig on entry three. They&rsquo;d shipped the box
+          before I&rsquo;d finished cancelling my saved cart.
+        </blockquote>
+        <footer class="proof__quote-foot">
+          <div>
+            <span class="proof__quote-name">{{ featured.name }}</span>
+            <span class="proof__quote-meta">
+              <span>{{ featured.rig }}</span>
+              <span class="proof__quote-sep">·</span>
+              <span>{{ featured.city }}</span>
+            </span>
+          </div>
+          <div class="proof__quote-rating">
+            <span class="t-mono">4.9</span>
+            <span class="proof__quote-stars" aria-label="4.9 of 5">
+              <span></span><span></span><span></span><span></span><span class="proof__quote-stars-half"></span>
+            </span>
+            <span class="t-overline">4 218 reviews</span>
+          </div>
+        </footer>
+      </article>
+
+      <div class="proof__metrics">
+        <div class="proof__metric">
+          <span class="proof__metric-val t-mono-xl">R12.4M</span>
+          <span class="proof__metric-label">Prizes awarded</span>
+        </div>
+        <div class="proof__metric">
+          <span class="proof__metric-val t-mono-xl">52 184</span>
+          <span class="proof__metric-label">Winning entries</span>
+        </div>
+        <div class="proof__metric">
+          <span class="proof__metric-val t-mono-xl">0.0%</span>
+          <span class="proof__metric-label">Cash-out delay (avg 18h)</span>
+        </div>
+        <div class="proof__metric">
+          <span class="proof__metric-val t-mono-xl">98%</span>
+          <span class="proof__metric-label">Would enter again</span>
+        </div>
+      </div>
+    </div>
+
+    <ul class="proof__row" role="list">
+      @for (t of more; track t.name) {
+        <li class="proof__card">
+          <p class="proof__card-quote">{{ t.quote }}</p>
+          <footer class="proof__card-foot">
+            <span class="proof__card-name">{{ t.name }}</span>
+            <span class="proof__card-meta">{{ t.rig }} · {{ t.city }}</span>
+          </footer>
+        </li>
+      }
+    </ul>
+  </div>
+</section>

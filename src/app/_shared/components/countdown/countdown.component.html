@@ -1,0 +1,21 @@
+<span class="countdown" [class.countdown--critical]="critical()">
+  <span class="countdown__unit">
+    <span class="countdown__value">{{ segments().days }}</span>
+    <span class="countdown__label">d</span>
+  </span>
+  <span class="countdown__sep">:</span>
+  <span class="countdown__unit">
+    <span class="countdown__value">{{ segments().hours }}</span>
+    <span class="countdown__label">h</span>
+  </span>
+  <span class="countdown__sep">:</span>
+  <span class="countdown__unit">
+    <span class="countdown__value">{{ segments().minutes }}</span>
+    <span class="countdown__label">m</span>
+  </span>
+  <span class="countdown__sep">:</span>
+  <span class="countdown__unit">
+    <span class="countdown__value">{{ segments().seconds }}</span>
+    <span class="countdown__label">s</span>
+  </span>
+</span>

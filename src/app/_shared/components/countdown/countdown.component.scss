@@ -1,0 +1,45 @@
+:host {
+  display: inline-flex;
+}
+
+.countdown {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.1ch;
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum' 1, 'zero' 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--cream-100);
+
+  &--critical {
+    color: var(--signal);
+  }
+
+  &__unit {
+    display: inline-flex;
+    align-items: baseline;
+  }
+
+  &__value {
+    font-size: inherit;
+    letter-spacing: -0.02em;
+  }
+
+  &__label {
+    font-size: 0.55em;
+    color: var(--cream-300);
+    margin-left: 0.15ch;
+    text-transform: lowercase;
+  }
+
+  &__sep {
+    color: var(--cream-400);
+    margin: 0 0.15ch;
+  }
+
+  &--critical &__label,
+  &--critical &__sep {
+    color: var(--signal);
+    opacity: 0.7;
+  }
+}

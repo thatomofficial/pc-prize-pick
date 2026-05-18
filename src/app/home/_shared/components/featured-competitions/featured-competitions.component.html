@@ -1,0 +1,30 @@
+<section id="competitions" class="featured u-container">
+  <header class="featured__header">
+    <div class="featured__title">
+      <span class="t-overline t-overline--volt">§ 02 · Now open</span>
+      <h2 class="featured__heading">
+        Four builds.
+        <em class="featured__heading-em">One winner</em>
+        per draw.
+      </h2>
+    </div>
+    <p class="featured__sub">
+      Every build is sourced, assembled, and stress-tested in Cape Town before
+      we open entries. Cash equivalent always available if you&rsquo;d rather
+      not take the parts.
+    </p>
+  </header>
+
+  <div class="featured__grid">
+    @for (c of competitions; track c.id) {
+      <app-competition-card [competition]="c" />
+    }
+  </div>
+
+  <footer class="featured__foot">
+    <a class="featured__more" href="/competitions">
+      <span>Browse the full archive</span>
+      <span aria-hidden="true">→</span>
+    </a>
+  </footer>
+</section>
