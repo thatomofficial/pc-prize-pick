@@ -27,6 +27,12 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "src/assets",
+                "ignore": ["**/scss/**/*"],
+                "output": "/assets"
               }
             ],
             "styles": [
