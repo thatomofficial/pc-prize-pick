@@ -1,0 +1,83 @@
+// Design tokens — pc-prize-pick
+// Aesthetic: editorial darkroom / premium PC hardware press kit.
+// One sharp accent (chartreuse "volt"), warm dark ink, cream text.
+
+:root {
+  // — Surface (warm dark, not pure black)
+  --ink-1000: #050403;
+  --ink-900: #0b0907;
+  --ink-800: #14110f;
+  --ink-700: #1c1815;
+  --ink-600: #2a2420;
+  --ink-500: #3d3631;
+
+  // — Text (warm cream)
+  --cream-100: #f6f1e7;
+  --cream-200: #e8e2d4;
+  --cream-300: #b8b0a3;
+  --cream-400: #807870;
+  --cream-500: #4a443e;
+
+  // — Accents — sparing
+  --volt: #d8ff3a;            // primary action, headline highlights, live indicators
+  --volt-dim: #9bbc1e;
+  --volt-soft: rgba(216, 255, 58, 0.16);
+  --signal: #ff5a36;          // closing-soon, urgent
+  --rare: #6aa8ff;            // info / status
+
+  // — Type families
+  --font-display: 'Instrument Serif', 'Cormorant Garamond', 'Times New Roman', serif;
+  --font-body: 'Hanken Grotesk', 'Helvetica Neue', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', ui-monospace, monospace;
+
+  // — Type scale (responsive via clamp)
+  --type-display-xl: clamp(3.25rem, 9.5vw, 8.5rem);
+  --type-display-lg: clamp(2.5rem, 6vw, 5rem);
+  --type-display-md: clamp(2rem, 4vw, 3.25rem);
+  --type-heading-lg: clamp(1.5rem, 2.4vw, 2rem);
+  --type-heading-md: 1.25rem;
+  --type-body-lg: 1.125rem;
+  --type-body: 1rem;
+  --type-body-sm: 0.875rem;
+  --type-caption: 0.75rem;
+  --type-overline: 0.6875rem;
+
+  // — Tracking / line-height
+  --tracking-tight: -0.025em;
+  --tracking-snug: -0.012em;
+  --tracking-wide: 0.08em;
+  --tracking-wider: 0.16em;
+
+  // — Spacing
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.25rem;
+  --s-6: 1.5rem;
+  --s-8: 2rem;
+  --s-10: 2.5rem;
+  --s-12: 3rem;
+  --s-16: 4rem;
+  --s-20: 5rem;
+  --s-24: 6rem;
+  --s-32: 8rem;
+  --s-40: 10rem;
+
+  // — Layout
+  --page-max: 1440px;
+  --gutter: clamp(1.25rem, 4vw, 4rem);
+
+  // — Borders
+  --hairline: 1px solid rgba(246, 241, 231, 0.08);
+  --hairline-strong: 1px solid rgba(246, 241, 231, 0.18);
+  --hairline-volt: 1px solid rgba(216, 255, 58, 0.4);
+
+  // — Motion
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 180ms;
+  --dur-med: 360ms;
+  --dur-slow: 720ms;
+}
