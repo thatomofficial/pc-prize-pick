@@ -1,43 +1,45 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# Repo-wide ignores. Per-app gitignores live in Frontend/ and Backend/.
 
-# Compiled output
-/dist
-/tmp
-/out-tsc
-/bazel-out
-
-# Node
-/node_modules
-npm-debug.log
-yarn-error.log
-
-# IDEs and editors
+# Editor / IDE — local state only
+.history/
 .idea/
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
+*.swp
+*.swo
+*~
 
-# Visual Studio Code
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.history/*
+# VS Code — only ignore a root-level .vscode/. Per-app .vscode/ folders are
+# governed by each app's own .gitignore (which allows the standard four files).
+/.vscode/
 
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
-testem.log
-/typings
-__screenshots__/
+# Claude Code local-only settings (never commit personal permissions)
+.claude/settings.local.json
+.claude/.session*
+.claude/scheduled_tasks.lock
 
-# System files
+# OS
 .DS_Store
 Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Env files (placed by humans at repo root or app root — keep them out of git)
+.env
+.env.local
+.env.*.local
+*.local
+
+# Node — defensive, in case anyone runs npm at root by mistake
+/node_modules
+
+# .NET build output — defensive, in case anyone runs dotnet at root
+/bin
+/obj
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Misc
+.tmp/
+.cache/

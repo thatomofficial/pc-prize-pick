@@ -1,8 +1,7 @@
 # AGENTS.md
 
 This file provides guidance to Codex and other agentic tools when working with
-code in this repository. Mirrors [`CLAUDE.md`](CLAUDE.md) — keep both in sync
-when conventions change.
+code in this repository. Mirrors [`CLAUDE.md`](CLAUDE.md) — keep both in sync when conventions change.
 
 ## Project Overview
 
@@ -16,107 +15,140 @@ The skill mechanic — described as **Spot-the-Pixel** in current copy — is wh
 keeps the product on the competition side of SA gambling law. Entries cap per
 draw, and every draw is auditable.
 
-Pre-alpha. The homepage exists against mock data; backend, payment integration,
-and the actual skill-question engine are unimplemented.
+**Cadence:** competitions run on fully synchronized 4-week (28-day) waves.
+Every wave closes Sunday 23:59:59.999 SAST. One wave clock per page, not per
+build. See [`BACKLOG.md`](BACKLOG.md) for the full backlog.
 
-## Stack
+Pre-alpha. Homepage exists against mock data; backend skeleton in place with
+one sample module (Competitions); payments / skill engine unimplemented.
 
+## Repo layout
+
+```
+pc-prize-pick/
+├── Frontend/         # Angular 21 SPA
+├── Backend/          # ASP.NET Core 10 API + EF Core + Postgres
+├── tools/            # Postgres init SQL, dev scripts
+├── docker-compose.yml  # Local Postgres for development
+└── *.md              # Top-level docs (this file, BACKLOG, DESIGN, etc.)
+```
+
+`Frontend/` and `Backend/` each have their own README, build tooling,
+and `.gitignore`.
+
+## Frontend
+
+### Stack
 Angular 21 (standalone components, signals, `@angular/build`) · TypeScript 5.9 ·
 SCSS with BEM · CSS custom properties as design tokens · Vitest + jsdom ·
 `en-ZA` locale (ZAR currency, SA date formats).
 
-## Commands
-
-Run from the repository root.
+### Commands (run from `Frontend/`)
 
 ```powershell
-# Dev servers (each uses the matching configuration in angular.json)
 npm start              # development config (default)
 npm run start:local    # against localhost backend
 npm run start:dev      # shared dev API
-npm run start:qa       # QA API
-npm run start:prod     # prod API (rare)
-
-# Builds
+npm run start:qa
+npm run start:prod
 npm run build          # production
-npm run build:local    # / dev / qa / prod
-
-# Tests
 npm test               # vitest via @angular/build:unit-test
 ```
 
-## Architecture
+### Architecture
 
-### Routing
-`app.routes.ts` is flat. Today only `/` (`HomePageComponent`) is wired, with a
-wildcard redirecting to `/`. Routing imports are direct (no lazy loading) until
-the app gets large enough to justify it.
+**Routing:** `app.routes.ts` is flat. Today only `/` (`HomePageComponent`) is
+wired, with a wildcard redirecting to `/`. No lazy loading yet.
 
-### Feature modules
-Per-feature folders live at `src/app/<feature>/`, each holding:
-- A `<feature>-page/` component that the router renders.
-- A `_shared/components/` directory with section-level components used only by
-  that feature.
+**Feature modules:** per-feature folders at `src/app/<feature>/` hold a
+`<feature>-page/` component and a `_shared/components/` directory for
+section-level components used only by that feature.
 
-Currently only `home/` exists. Future features (`competitions/`, `account/`,
-`checkout/`, …) should follow the same shape.
+**Global shared code:** `src/app/_shared/` holds `components/`, `models/`,
+`services/`, etc. for cross-cutting concerns.
 
-### Global shared code
-`src/app/_shared/` holds cross-cutting concerns:
-- `components/` — generic widgets (e.g. `CountdownComponent`).
-- `models/` — TypeScript interfaces and types.
-- `services/` — injectable singletons (currently `MockCompetitionsService`).
-- `constants/`, `directives/`, `enums/`, `guards/`, `helpers/`, `interceptors/`,
-  `interfaces/`, `pipes/` — empty placeholders, populate as needed.
+**Environments:** five files in `src/environments/` swapped via
+`fileReplacements` in `angular.json`.
 
-### Environments
-Five files in `src/environments/` (`environment.ts` is the default fallback;
-`.local.ts`, `.development.ts`, `.qa.ts`, `.production.ts` are swapped in via
-`fileReplacements` in `angular.json`). The shared interface lives at
-`src/app/_shared/models/environment.model.ts`.
+**Locale:** `app.config.ts` registers `en-ZA` and provides it as `LOCALE_ID`.
+Always pass `'en-ZA'` explicitly to the `currency` pipe.
 
-### Locale
-`app.config.ts` registers `en-ZA` and provides it as the `LOCALE_ID`. Always
-pass `'en-ZA'` explicitly to the `currency` pipe when formatting ZAR — it
-guarantees the symbol and grouping render correctly even if the LOCALE_ID
-provider is changed later:
+**Styling:** Global styles under `src/assets/scss/`. **Do not edit
+`src/styles.scss`** — it just `@use`s `assets/scss/main`. `_tokens.scss` holds
+CSS custom properties; component styles reference them directly.
 
-```html
-{{ priceCents / 100 | currency: 'ZAR' : 'symbol' : '1.2-2' : 'en-ZA' }}
-```
+**Wave clock:** `home/_shared/components/wave-clock/` renders the single
+shared wave countdown. Per-card / per-build countdowns are deliberately absent.
 
-### Styling
-- Global styles live under `src/assets/scss/`. **Do not edit `src/styles.scss`** —
-  it just `@use`s `assets/scss/main`.
-- `_tokens.scss` defines CSS custom properties (`--ink-900`, `--volt`,
-  `--font-display`, etc.). Component styles reference those custom properties
-  directly; SCSS variables / mixins are not currently used.
-- BEM naming: `block`, `block__element`, `block--modifier`,
-  `block__element--modifier`.
-- Component selectors use the `app-` prefix.
-- **Every component has three sibling files** — `<name>.component.ts`,
-  `<name>.component.html`, `<name>.component.scss` — referenced via
-  `templateUrl` and `styleUrl` on the `@Component` decorator. Inline `template:`
-  / `styles:` strings are not used at any size, even for trivial components.
-
-### Mock data
-`MockCompetitionsService` returns hand-tuned `Competition`, `CompetitionTier`,
-and `RecentWinner` data. When wiring real APIs, replace this service rather
-than the consumers.
-
-## Conventions
+### Conventions
 
 - **File / folder names:** `kebab-case`.
-- **Class names:** `PascalCase`.
-- **Variables / functions:** `camelCase`.
+- **Class names:** `PascalCase`. Variables / functions: `camelCase`.
 - **Function names:** verbs / action words.
-- **Collections:** plural nouns (`competitions`, not `competitionList`).
-- **Components:** standalone, `ChangeDetectionStrategy.OnPush`. Use `signal()`,
-  `computed()`, `input()` (signal-based inputs), and `inject()` over
-  constructor injection.
-- **Money:** stored in cents (`*PriceCents`, `*ValueCents`), divided by 100 at
-  render time. No floats in storage.
+- **Collections:** plural nouns.
+- **Components:** standalone, `ChangeDetectionStrategy.OnPush`. Use
+  `signal()`, `computed()`, `input()`, and `inject()` over constructor
+  injection.
+- **Every component has three sibling files** — `<name>.component.ts`,
+  `<name>.component.html`, `<name>.component.scss` — referenced via
+  `templateUrl` and `styleUrl`. Inline `template:` / `styles:` strings are
+  not used at any size.
+- **Money:** stored in cents (`*PriceCents`, `*ValueCents`), divided by 100
+  at render time.
 - **Dates:** ISO 8601 strings on models; convert at component boundaries.
+
+## Backend
+
+### Stack
+ASP.NET Core 10 (net10.0), minimal APIs, EF Core 9 + Npgsql, PostgreSQL 17.
+Clean Architecture lite — Api → Application + Infrastructure → Domain.
+
+### Commands (run from `Backend/`)
+
+```powershell
+dotnet build PcPrizePick.slnx
+dotnet run --project src/PcPrizePick.Api
+dotnet test PcPrizePick.slnx
+
+# EF Core migrations
+dotnet ef migrations add <Name> --project src/PcPrizePick.Infrastructure --startup-project src/PcPrizePick.Api
+dotnet ef database update --project src/PcPrizePick.Infrastructure --startup-project src/PcPrizePick.Api
+```
+
+### Architecture
+
+- **`PcPrizePick.Domain/`** — entities, value types, repository interfaces.
+  Pure C#. No EF Core, no ASP.NET, no external SDK references.
+- **`PcPrizePick.Application/`** — use-case services and DTOs. Talks to the
+  Domain via repository interfaces.
+- **`PcPrizePick.Infrastructure/`** — EF Core `AppDbContext`, Npgsql,
+  repository implementations. EF entity configuration lives in
+  `AppDbContext.OnModelCreating` (no `[Table]` / `[Column]` attributes on
+  domain types).
+- **`PcPrizePick.Api/`** — minimal API endpoints grouped under
+  `Api/Endpoints/<Module>Endpoints.cs`, registered from `Program.cs`.
+  OpenAPI auto-generated. CORS allows `http://localhost:4200` in dev.
+
+### Conventions
+
+- **Minimal APIs over MVC controllers** — reach for controllers only when
+  the endpoint genuinely benefits from scaffolding (e.g. complex model
+  binding).
+- **GUIDs are Version 7** (`Guid.CreateVersion7()`) — time-ordered for
+  index locality.
+- **Repository pattern** — interfaces in `Domain/`, implementations in
+  `Infrastructure/`.
+- **DTOs in `Application/`** — never expose Domain entities directly
+  from endpoints; project to DTOs in services.
+- **Async all the way** — repos return `Task<T>`, endpoints accept
+  `CancellationToken` and pass it through.
+- **One DbContext** for now. Split per-module once modules grow tense.
+
+### Local dev DB
+
+`docker compose up -d postgres` at the repo root starts Postgres on
+`localhost:5432` with db / user / password all = `pcprizepick`. The
+connection string in `appsettings.Development.json` matches.
 
 ## Branches
 
@@ -132,5 +164,6 @@ maintainer's behalf.
 
 ## See also
 
-- [`DESIGN.md`](DESIGN.md) — design tokens, typography pairings, accent usage.
-- [`README.md`](README.md) — setup and scripts.
+- [`Frontend/README.md`](Frontend/README.md), [`Backend/README.md`](Backend/README.md)
+- [`BACKLOG.md`](BACKLOG.md) — product backlog
+- [`DESIGN.md`](DESIGN.md) — design tokens, typography, accent usage

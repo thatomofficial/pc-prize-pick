@@ -1,0 +1,27 @@
+name: pcprizepick
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: pcprizepick-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pcprizepick
+      POSTGRES_PASSWORD: pcprizepick
+      POSTGRES_DB: pcprizepick
+      TZ: Africa/Johannesburg
+      PGTZ: Africa/Johannesburg
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./tools/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pcprizepick -d pcprizepick"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+    name: pcprizepick-postgres-data

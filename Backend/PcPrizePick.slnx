@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PcPrizePick.Api/PcPrizePick.Api.csproj" />
+    <Project Path="src/PcPrizePick.Application/PcPrizePick.Application.csproj" />
+    <Project Path="src/PcPrizePick.Domain/PcPrizePick.Domain.csproj" />
+    <Project Path="src/PcPrizePick.Infrastructure/PcPrizePick.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PcPrizePick.Tests/PcPrizePick.Tests.csproj" />
+  </Folder>
+</Solution>
