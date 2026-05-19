@@ -252,9 +252,9 @@ ties. Inherits Dream Drive's established legal posture under SA law.
 
 - `[ ]` **E4.1 — `SkillChallengeService` API contract.** MVP.
   - `GET /api/competitions/:slug/challenge` returns `{ imageUrl,
-    challengeId, expiresAt, imageWidth, imageHeight }`.
+challengeId, expiresAt, imageWidth, imageHeight }`.
   - `POST /api/skill-submissions` accepts `{ challengeId, x, y,
-    submittedAt }` and returns receipt id. `x` / `y` are integer pixel
+submittedAt }` and returns receipt id. `x` / `y` are integer pixel
     coordinates in the natural image space (not the rendered viewport).
   - `expiresAt` is bound by the competition's wave close, which itself sits
     on the 28-day cycle — challenges cannot be submitted after wave close.
@@ -298,13 +298,25 @@ ties. Inherits Dream Drive's established legal posture under SA law.
 
 ### E6 · Account & profile
 
-- `[ ]` **E6.1 — Sign up.** MVP.
-  - Email + password, with email verification.
-  - Social login parity (see F2.4).
-- `[ ]` **E6.2 — Sign in / forgot password / reset.** MVP.
-- `[ ]` **E6.3 — `/account` dashboard.** MVP.
-  - Open entries by competition, pending skill submissions, recent
-    transactions, loyalty tier badge.
+- `[~]` **E6.1 — Sign up.** MVP.
+  - UI shipped against mock `AuthService.signUp()` at `/register` (email +
+    optional display name + password + confirm, password-match validator,
+    error path via `wrong@test.com`).
+  - **Still open:** email verification flow, social login parity (see F2.4),
+    real backend wiring (see F1.4 + F2.1).
+- `[~]` **E6.2 — Sign in / forgot password / reset.** MVP.
+  - UI shipped: `/login` against mock `AuthService.signIn()`, `/forgot-password`
+    against `AuthService.requestPasswordReset()` (always succeeds, security
+    pattern). `authGuard` captures `?returnUrl=` so the post-login redirect
+    works.
+  - **Still open:** real backend, actual reset email (E12.1), token refresh
+    (F2.3).
+- `[~]` **E6.3 — `/account` dashboard.** MVP.
+  - Skeleton shipped: identity card (initials, displayName, email),
+    sign-out button, placeholder panels for Open entries / Skill submissions
+    / Loyalty tier, "Up next" list pointing at remaining backlog items.
+  - **Still open:** real entry data once Competitions API lands; real
+    submission history once E4.2 ships; loyalty integration (E8).
 - `[ ]` **E6.4 — Profile settings.**
   - Display name, mobile, address (for prize delivery), comms preferences.
 - `[ ]` **E6.5 — Wallet / cash-out alternative.**

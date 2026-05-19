@@ -12,13 +12,11 @@
 
     <div class="demo__grid">
       <section class="demo__primary">
-        <h1 class="demo__heading">
-          Mark the <em class="demo__heading-em">ball</em>.
-        </h1>
+        <h1 class="demo__heading">Mark the <em class="demo__heading-em">ball</em>.</h1>
         <p class="demo__lede">
-          Each wave we publish one photo of the prize build with a ball
-          digitally removed. Click where you reckon it was. The closest pixel
-          to the original wins; ties go to the earliest entry.
+          Each wave we publish one photo of the prize build with a ball digitally removed. Click
+          where you reckon it was. The closest pixel to the original wins; ties go to the earliest
+          entry.
         </p>
 
         <app-ball-picker
@@ -33,7 +31,9 @@
         <div class="demo__panel">
           <span class="t-overline">Challenge</span>
           <h2 class="demo__panel-title">{{ challenge.title }}</h2>
-          <p class="demo__panel-meta">№ {{ challenge.id }} · {{ challenge.naturalWidth }} × {{ challenge.naturalHeight }} px</p>
+          <p class="demo__panel-meta">
+            № {{ challenge.id }} · {{ challenge.naturalWidth }} × {{ challenge.naturalHeight }} px
+          </p>
         </div>
 
         <div class="demo__panel">
@@ -63,9 +63,8 @@
               </div>
             </dl>
             <p class="demo__receipt-note">
-              Not a real entry. The target coordinate is hardcoded for this
-              practice round so you can see how skill stacks against
-              the closest-pixel rule.
+              Not a real entry. The target coordinate is hardcoded for this practice round so you
+              can see how skill stacks against the closest-pixel rule.
             </p>
           </div>
         } @else {
@@ -73,8 +72,7 @@
             <span class="t-overline">No submission yet</span>
             <p class="demo__panel-help">
               Place the crosshair, nudge with arrow keys, then hit
-              <strong>Lock in</strong> when you&rsquo;re happy. One shot per
-              practice round.
+              <strong>Lock in</strong> when you&rsquo;re happy. One shot per practice round.
             </p>
           </div>
         }

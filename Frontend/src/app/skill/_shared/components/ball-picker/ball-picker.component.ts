@@ -20,8 +20,7 @@ export interface PickerCoordinate {
   yPct: number;
 }
 
-const clamp = (n: number, min: number, max: number): number =>
-  Math.max(min, Math.min(max, n));
+const clamp = (n: number, min: number, max: number): number => Math.max(min, Math.min(max, n));
 
 @Component({
   selector: 'app-ball-picker',

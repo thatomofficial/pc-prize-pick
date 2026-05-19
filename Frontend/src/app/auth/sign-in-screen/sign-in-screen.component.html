@@ -1,0 +1,112 @@
+<main class="signin">
+  <aside class="signin__editorial" aria-hidden="true">
+    <div class="signin__editorial-inner">
+      <span class="t-overline t-overline--volt">§ Sign in</span>
+      <h1 class="signin__editorial-headline">
+        Back for <em class="signin__editorial-em">another</em><br />
+        shot at the rig.
+      </h1>
+      <p class="signin__editorial-lede">
+        Your entries, your skill submissions, and your loyalty tier all live behind one account. One
+        wave, one draw, every four weeks &mdash; let&rsquo;s see if this is your one.
+      </p>
+      <dl class="signin__editorial-stats">
+        <div>
+          <dt class="t-overline">Prizes awarded</dt>
+          <dd class="t-mono-lg">R12.4M</dd>
+        </div>
+        <div>
+          <dt class="t-overline">Winning builders</dt>
+          <dd class="t-mono-lg">52 184</dd>
+        </div>
+      </dl>
+      <div class="signin__editorial-mark">
+        <span class="t-mono">PC / Prize Pick</span>
+        <span class="t-overline">Cape Town · ZA</span>
+      </div>
+    </div>
+  </aside>
+
+  <section class="signin__form-wrap">
+    <header class="signin__form-header">
+      <a class="signin__form-back t-overline" routerLink="/">← Back to homepage</a>
+    </header>
+
+    <div class="signin__form-card">
+      <h2 class="signin__form-heading">Welcome back.</h2>
+      <p class="signin__form-sub">
+        Mock auth for the demo. Any email works; password must be 6+ chars. Use
+        <strong>wrong&commat;test.com</strong> to see the error path.
+      </p>
+
+      <form class="signin__form" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="signin__field">
+          <label class="signin__label t-overline" for="signin-email">Email</label>
+          <input
+            id="signin-email"
+            class="signin__input"
+            type="email"
+            autocomplete="email"
+            spellcheck="false"
+            formControlName="email"
+            [class.signin__input--invalid]="showError('email')"
+            placeholder="you@example.com"
+          />
+          @if (showError('email')) {
+            <p class="signin__error t-overline">{{ errorFor('email') }}</p>
+          }
+        </div>
+
+        <div class="signin__field">
+          <div class="signin__label-row">
+            <label class="signin__label t-overline" for="signin-password">Password</label>
+            <a class="signin__forgot t-overline" routerLink="/forgot-password">Forgot?</a>
+          </div>
+          <div class="signin__input-wrap">
+            <input
+              id="signin-password"
+              class="signin__input"
+              [type]="passwordVisible() ? 'text' : 'password'"
+              autocomplete="current-password"
+              formControlName="password"
+              [class.signin__input--invalid]="showError('password')"
+              placeholder="At least 6 characters"
+            />
+            <button
+              type="button"
+              class="signin__reveal t-overline"
+              (click)="togglePasswordVisible()"
+              [attr.aria-pressed]="passwordVisible()"
+            >
+              {{ passwordVisible() ? 'Hide' : 'Show' }}
+            </button>
+          </div>
+          @if (showError('password')) {
+            <p class="signin__error t-overline">{{ errorFor('password') }}</p>
+          }
+        </div>
+
+        @if (submitError(); as err) {
+          <div class="signin__alert" role="alert">
+            <span class="t-overline">Sign-in failed</span>
+            <span>{{ err }}</span>
+          </div>
+        }
+
+        <button type="submit" class="signin__submit" [disabled]="status() === 'submitting'">
+          @if (status() === 'submitting') {
+            <span>Signing in&hellip;</span>
+          } @else {
+            <span>Sign in</span>
+            <span class="signin__submit-arrow" aria-hidden="true">→</span>
+          }
+        </button>
+      </form>
+
+      <footer class="signin__form-footer">
+        <span class="t-overline">New here?</span>
+        <a class="signin__register" routerLink="/register">Create an account →</a>
+      </footer>
+    </div>
+  </section>
+</main>
