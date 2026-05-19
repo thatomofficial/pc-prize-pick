@@ -23,6 +23,15 @@ follow-up story, not scope creep on the current one.
 - `[x]` `CountdownComponent` (signal-based, accessible).
 - `[x]` Mock data service for competitions, tiers, winners.
 
+## Cadence
+
+Competitions run on **synchronized 4-week (28-day) cycles**, mirroring Dream
+Drive. Every 4 weeks a new wave opens and the previous wave closes / draws.
+Individual competitions within a wave can have staggered draw dates within
+the final week so the homepage always has a "closing soon" and a "just
+opened" item visible. Loyalty point resets, tier reviews, and admin
+operations all align to the 4-week boundary.
+
 ## MVP definition
 
 The smallest thing that lets a real South African buyer pay for an entry,
@@ -218,6 +227,10 @@ alone; they all unblock something downstream.
     if any).
   - Entries meter (sold / cap), cash alternative, entry price.
   - Primary CTA: "Take a shot — R XX,XX".
+  - Countdown reflects the 4-week cycle — copy reads "this wave closes…" not
+    "this competition closes…"; once a wave closes, the page must surface
+    the wave's draw outcome and link to the next wave's competition in the
+    same tier.
 - `[ ]` **E3.2 — Spec card "build sheet" downloadable PDF.**
 - `[ ]` **E3.3 — Related competitions row.**
 - `[ ]` **E3.4 — Share menu.**
@@ -233,6 +246,8 @@ The core legal differentiator. The implementation must be defensible.
     challengeId, expiresAt }`.
   - `POST /api/skill-submissions` accepts `{ challengeId, x, y,
     submittedAt }` and returns receipt id.
+  - `expiresAt` is bound by the competition's wave close, which itself sits
+    on the 28-day cycle — challenges cannot be submitted after wave close.
 - `[ ]` **E4.2 — Skill UI.** MVP.
   - Full-bleed image. User taps / clicks to place a crosshair.
   - Pinch-zoom support on touch; arrow-key nudge on keyboard.
@@ -344,6 +359,9 @@ or a section in the same app behind admin guard.
   - Create / publish / close competitions, edit spec, upload images.
 - `[ ]` **E13.2 — Draw runner.**
   - Trigger the draw, see audit log, confirm winner.
+  - Defaults to the wave's scheduled draw date (28-day cron from a fixed
+    epoch). Manual override exists for legal / operational holds but emits
+    an audit event when used.
 - `[ ]` **E13.3 — Manual cash-out / overrides.**
 - `[ ]` **E13.4 — Audit log viewer.**
 

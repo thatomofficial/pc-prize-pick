@@ -1,7 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Competition, CompetitionTier, RecentWinner } from '../models/competition.model';
 
-const hoursFromNow = (h: number): string => new Date(Date.now() + h * 3_600_000).toISOString();
+// Competitions run on synchronized 4-week (28-day) cycles. Tracks are offset
+// by ~1 week so a "closing soon" and a "just opened" build always coexist on
+// the homepage.
+const DAY_HOURS = 24;
+const daysFromNow = (d: number): string =>
+  new Date(Date.now() + d * DAY_HOURS * 3_600_000).toISOString();
 const hoursAgo = (h: number): string => new Date(Date.now() - h * 3_600_000).toISOString();
 
 @Injectable({ providedIn: 'root' })
@@ -19,7 +24,7 @@ export class MockCompetitionsService {
         cashAlternativeCents: 7_500_000,
         totalEntries: 12_000,
         entriesSold: 11_284,
-        closesAt: hoursFromNow(11),
+        closesAt: daysFromNow(2),
         specs: {
           cpu: 'Ryzen 9 9950X',
           gpu: 'RTX 5090 Founders',
@@ -39,7 +44,7 @@ export class MockCompetitionsService {
         cashAlternativeCents: 10_500_000,
         totalEntries: 9_500,
         entriesSold: 4_122,
-        closesAt: hoursFromNow(74),
+        closesAt: daysFromNow(10),
         specs: {
           cpu: 'Threadripper 7980X',
           gpu: 'RTX 5080 Pro',
@@ -58,8 +63,8 @@ export class MockCompetitionsService {
         entryPriceCents: 2_960,
         cashAlternativeCents: 2_800_000,
         totalEntries: 18_000,
-        entriesSold: 7_891,
-        closesAt: hoursFromNow(196),
+        entriesSold: 9_204,
+        closesAt: daysFromNow(17),
         specs: {
           cpu: 'Ryzen 7 9700X',
           gpu: 'RX 9070 XT',
@@ -79,7 +84,7 @@ export class MockCompetitionsService {
         cashAlternativeCents: 4_500_000,
         totalEntries: 14_000,
         entriesSold: 2_104,
-        closesAt: hoursFromNow(312),
+        closesAt: daysFromNow(25),
         specs: {
           cpu: 'Ryzen 9 9900X',
           gpu: 'RTX 5070 Ti',
