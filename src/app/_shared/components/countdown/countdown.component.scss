@@ -7,7 +7,9 @@
   align-items: baseline;
   gap: 0.1ch;
   font-family: var(--font-mono);
-  font-feature-settings: 'tnum' 1, 'zero' 1;
+  font-feature-settings:
+    'tnum' 1,
+    'zero' 1;
   font-variant-numeric: tabular-nums;
   color: var(--cream-100);
 

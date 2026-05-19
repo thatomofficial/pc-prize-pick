@@ -1,14 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { MockCompetitionsService } from '../../../../_shared/services/mock-competitions.service';
-import { CountdownComponent } from '../../../../_shared/components/countdown/countdown.component';
 
 @Component({
   selector: 'app-home-hero',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, CountdownComponent],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe],
   templateUrl: './home-hero.component.html',
-  styleUrl: './home-hero.component.scss'
+  styleUrl: './home-hero.component.scss',
 })
 export class HomeHeroComponent {
   private readonly competitions = inject(MockCompetitionsService);
@@ -17,6 +16,6 @@ export class HomeHeroComponent {
   protected readonly issueNumber = '042';
 
   protected readonly progress = computed(() =>
-    Math.round((this.featured.entriesSold / this.featured.totalEntries) * 100)
+    Math.round((this.featured.entriesSold / this.featured.totalEntries) * 100),
   );
 }

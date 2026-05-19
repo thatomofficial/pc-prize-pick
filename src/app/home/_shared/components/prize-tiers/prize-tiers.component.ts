@@ -7,7 +7,7 @@ import { MockCompetitionsService } from '../../../../_shared/services/mock-compe
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CurrencyPipe],
   templateUrl: './prize-tiers.component.html',
-  styleUrl: './prize-tiers.component.scss'
+  styleUrl: './prize-tiers.component.scss',
 })
 export class PrizeTiersComponent {
   private readonly service = inject(MockCompetitionsService);

@@ -11,6 +11,6 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    { provide: LOCALE_ID, useValue: 'en-ZA' }
-  ]
+    { provide: LOCALE_ID, useValue: 'en-ZA' },
+  ],
 };

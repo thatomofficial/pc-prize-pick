@@ -98,7 +98,9 @@ body {
 // Numerics — monospace, tight
 .t-mono {
   font-family: var(--font-mono);
-  font-feature-settings: 'tnum' 1, 'zero' 1;
+  font-feature-settings:
+    'tnum' 1,
+    'zero' 1;
   letter-spacing: 0;
 }
 
@@ -107,7 +109,9 @@ body {
   font-size: clamp(1.5rem, 2.4vw, 2.25rem);
   font-weight: 500;
   letter-spacing: -0.02em;
-  font-feature-settings: 'tnum' 1, 'zero' 1;
+  font-feature-settings:
+    'tnum' 1,
+    'zero' 1;
 }
 
 .t-mono-xl {
@@ -115,7 +119,9 @@ body {
   font-size: clamp(2rem, 3.5vw, 3.5rem);
   font-weight: 500;
   letter-spacing: -0.03em;
-  font-feature-settings: 'tnum' 1, 'zero' 1;
+  font-feature-settings:
+    'tnum' 1,
+    'zero' 1;
   line-height: 1;
 }
 

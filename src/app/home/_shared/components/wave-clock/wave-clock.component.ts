@@ -7,8 +7,9 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { DatePipe } from '@angular/common';
 
-interface CountdownSegments {
+interface WaveSegments {
   days: string;
   hours: string;
   minutes: string;
@@ -19,18 +20,20 @@ interface CountdownSegments {
 const pad = (n: number): string => String(Math.max(0, Math.floor(n))).padStart(2, '0');
 
 @Component({
-  selector: 'app-countdown',
+  selector: 'app-wave-clock',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './countdown.component.html',
-  styleUrl: './countdown.component.scss',
+  imports: [DatePipe],
+  templateUrl: './wave-clock.component.html',
+  styleUrl: './wave-clock.component.scss',
 })
-export class CountdownComponent {
-  readonly target = input.required<string>();
+export class WaveClockComponent {
+  readonly closesAt = input.required<string>();
+  readonly waveCode = input.required<string>();
 
   private readonly now = signal(Date.now());
 
-  protected readonly segments = computed<CountdownSegments>(() => {
-    const target = new Date(this.target()).getTime();
+  protected readonly segments = computed<WaveSegments>(() => {
+    const target = new Date(this.closesAt()).getTime();
     const diff = Math.max(0, target - this.now());
     const days = Math.floor(diff / 86_400_000);
     const hours = Math.floor((diff % 86_400_000) / 3_600_000);
@@ -45,7 +48,7 @@ export class CountdownComponent {
     };
   });
 
-  protected readonly critical = computed(() => this.segments().totalMs <= 24 * 3_600_000);
+  protected readonly critical = computed(() => this.segments().totalMs <= 72 * 3_600_000);
 
   constructor() {
     const handle = setInterval(() => this.now.set(Date.now()), 1000);

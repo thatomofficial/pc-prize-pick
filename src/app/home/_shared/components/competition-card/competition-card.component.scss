@@ -13,14 +13,16 @@
   padding: var(--s-6);
   background: var(--ink-800);
   border: var(--hairline);
-  transition: transform var(--dur-med) var(--ease-out-quart),
+  transition:
+    transform var(--dur-med) var(--ease-out-quart),
     border-color var(--dur-med),
     box-shadow var(--dur-med);
 
   &:hover {
     transform: translateY(-4px);
     border-color: rgba(246, 241, 231, 0.22);
-    box-shadow: 0 28px 64px -32px hsla(var(--hue), 80%, 50%, 0.35),
+    box-shadow:
+      0 28px 64px -32px hsla(var(--hue), 80%, 50%, 0.35),
       0 0 0 1px hsla(var(--hue), 80%, 60%, 0.12);
   }
 
@@ -179,23 +181,10 @@
 
   &__foot {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr 1fr;
     gap: var(--s-4);
     align-items: end;
     padding-top: var(--s-3);
-  }
-
-  &__foot-left {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--s-3);
-  }
-
-  &__foot-right {
-    display: flex;
-    flex-direction: column;
-    gap: var(--s-1);
-    text-align: right;
   }
 
   &__money {
@@ -205,7 +194,7 @@
 
     &-val {
       font-family: var(--font-mono);
-      font-size: 0.95rem;
+      font-size: 1.05rem;
       font-weight: 500;
       color: var(--cream-100);
       letter-spacing: -0.01em;
@@ -214,10 +203,6 @@
         color: var(--volt);
       }
     }
-  }
-
-  &__countdown {
-    font-size: 0.85rem;
   }
 
   &__cta {
@@ -231,7 +216,8 @@
     font-weight: 600;
     border: 1px solid rgba(246, 241, 231, 0.22);
     margin-top: auto;
-    transition: background var(--dur-fast),
+    transition:
+      background var(--dur-fast),
       color var(--dur-fast),
       border-color var(--dur-fast);
 

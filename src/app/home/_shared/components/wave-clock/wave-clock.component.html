@@ -1,0 +1,42 @@
+<section class="wave" aria-label="Current competition wave countdown">
+  <div class="wave__inner u-container">
+    <div class="wave__label-block">
+      <span class="t-overline t-overline--volt wave__label">
+        <span class="u-live-dot"></span>
+        <span>Wave {{ waveCode() }} · all builds close together</span>
+      </span>
+      <span class="wave__caption"
+        >This is the only clock you need. One wave, one draw, every four weeks.</span
+      >
+    </div>
+
+    <div class="wave__display" [class.wave__display--critical]="critical()">
+      <div class="wave__unit">
+        <span class="wave__value">{{ segments().days }}</span>
+        <span class="wave__unit-label">days</span>
+      </div>
+      <span class="wave__divider" aria-hidden="true"></span>
+      <div class="wave__unit">
+        <span class="wave__value">{{ segments().hours }}</span>
+        <span class="wave__unit-label">hours</span>
+      </div>
+      <span class="wave__divider" aria-hidden="true"></span>
+      <div class="wave__unit">
+        <span class="wave__value">{{ segments().minutes }}</span>
+        <span class="wave__unit-label">minutes</span>
+      </div>
+      <span class="wave__divider" aria-hidden="true"></span>
+      <div class="wave__unit">
+        <span class="wave__value">{{ segments().seconds }}</span>
+        <span class="wave__unit-label">seconds</span>
+      </div>
+    </div>
+
+    <div class="wave__meta">
+      <span class="t-overline">Closes</span>
+      <span class="wave__meta-date t-mono">
+        {{ closesAt() | date: 'EEE dd MMM · HH:mm' : '+0200' : 'en-ZA' }} SAST
+      </span>
+    </div>
+  </div>
+</section>

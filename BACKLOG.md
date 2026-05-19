@@ -25,12 +25,16 @@ follow-up story, not scope creep on the current one.
 
 ## Cadence
 
-Competitions run on **synchronized 4-week (28-day) cycles**, mirroring Dream
-Drive. Every 4 weeks a new wave opens and the previous wave closes / draws.
-Individual competitions within a wave can have staggered draw dates within
-the final week so the homepage always has a "closing soon" and a "just
-opened" item visible. Loyalty point resets, tier reviews, and admin
-operations all align to the 4-week boundary.
+Competitions run on **fully synchronized 4-week (28-day) waves**, mirroring
+Dream Drive. Every 4 weeks a new wave opens and the previous wave's builds
+close at the same moment for a single draw. There is one wave clock per
+page — `app-wave-clock` on the homepage — not per build. Loyalty point
+resets, tier reviews, and admin operations align to the 4-week boundary.
+
+**Wave-close moment is always Sunday 23:59:59.999 SAST** (= Sunday
+21:59:59.999 UTC). The 28-day cadence advances Sunday → Sunday → Sunday
+cleanly. Backend scheduler, admin draw runner, mock data, and any new
+copy must respect this anchor.
 
 ## MVP definition
 

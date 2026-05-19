@@ -123,7 +123,9 @@
     font-weight: 600;
     letter-spacing: -0.005em;
     border: 1px solid var(--volt);
-    transition: transform var(--dur-fast) var(--ease-out-quart), box-shadow var(--dur-med);
+    transition:
+      transform var(--dur-fast) var(--ease-out-quart),
+      box-shadow var(--dur-med);
 
     &:hover {
       transform: translateY(-1px);

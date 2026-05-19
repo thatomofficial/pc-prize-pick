@@ -33,8 +33,7 @@
       right: -10%;
       width: 70%;
       height: 70%;
-      background:
-        radial-gradient(circle, rgba(216, 255, 58, 0.14) 0%, transparent 60%);
+      background: radial-gradient(circle, rgba(216, 255, 58, 0.14) 0%, transparent 60%);
       filter: blur(20px);
     }
   }
@@ -153,8 +152,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    background:
-      linear-gradient(180deg, rgba(20, 17, 15, 0.94) 0%, rgba(11, 9, 7, 0.98) 100%);
+    background: linear-gradient(180deg, rgba(20, 17, 15, 0.94) 0%, rgba(11, 9, 7, 0.98) 100%);
     border: var(--hairline-strong);
     padding: var(--s-6);
     gap: var(--s-5);
@@ -336,7 +334,7 @@
 
     &-foot {
       display: grid;
-      grid-template-columns: 1fr 1fr 1.4fr;
+      grid-template-columns: 1fr 1fr;
       gap: var(--s-4);
       padding-top: var(--s-4);
       border-top: var(--hairline);
@@ -369,7 +367,8 @@
       font-size: 0.95rem;
       letter-spacing: -0.005em;
       margin-top: var(--s-2);
-      transition: transform var(--dur-fast) var(--ease-out-quart),
+      transition:
+        transform var(--dur-fast) var(--ease-out-quart),
         box-shadow var(--dur-med);
 
       &:hover {
@@ -388,7 +387,8 @@
   font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: -0.005em;
-  transition: transform var(--dur-fast) var(--ease-out-quart),
+  transition:
+    transform var(--dur-fast) var(--ease-out-quart),
     background var(--dur-fast),
     border-color var(--dur-fast);
   border: 1px solid transparent;

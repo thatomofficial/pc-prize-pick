@@ -145,7 +145,8 @@
     color: var(--cream-200);
     border: 1px solid rgba(246, 241, 231, 0.16);
     font-size: 1.1rem;
-    transition: background var(--dur-fast),
+    transition:
+      background var(--dur-fast),
       color var(--dur-fast),
       border-color var(--dur-fast),
       transform var(--dur-fast);

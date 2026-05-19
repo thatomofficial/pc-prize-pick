@@ -1,5 +1,5 @@
 export interface Environment {
-    production: boolean;
-    apiEndpoint: string;
-    appName: string;
+  production: boolean;
+  apiEndpoint: string;
+  appName: string;
 }

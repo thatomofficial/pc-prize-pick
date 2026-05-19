@@ -6,7 +6,7 @@ import { RecentWinner } from '../../../../_shared/models/competition.model';
   selector: 'app-winners-ticker',
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './winners-ticker.component.html',
-  styleUrl: './winners-ticker.component.scss'
+  styleUrl: './winners-ticker.component.scss',
 })
 export class WinnersTickerComponent {
   private readonly competitions = inject(MockCompetitionsService);

@@ -95,8 +95,7 @@
     margin-top: var(--s-16);
     padding: var(--s-8);
     background:
-      linear-gradient(135deg, rgba(216, 255, 58, 0.06) 0%, transparent 60%),
-      var(--ink-800);
+      linear-gradient(135deg, rgba(216, 255, 58, 0.06) 0%, transparent 60%), var(--ink-800);
     border: var(--hairline-strong);
     display: grid;
     grid-template-columns: 1fr;

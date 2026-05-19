@@ -1,7 +1,8 @@
-<article class="card"
+<article
+  class="card"
   [class.card--closing]="competition().status === 'closing-soon'"
-  [style.--hue]="competition().accentHue">
-
+  [style.--hue]="competition().accentHue"
+>
   <header class="card__header">
     <span class="card__status t-overline">
       @if (competition().status === 'closing-soon') {
@@ -59,23 +60,17 @@
   </div>
 
   <footer class="card__foot">
-    <div class="card__foot-left">
-      <div class="card__money">
-        <span class="t-overline">Value</span>
-        <span class="card__money-val">
-          {{ competition().prizeValueCents / 100 | currency: 'ZAR' : 'symbol' : '1.0-0' : 'en-ZA' }}
-        </span>
-      </div>
-      <div class="card__money">
-        <span class="t-overline">Entry</span>
-        <span class="card__money-val card__money-val--volt">
-          {{ competition().entryPriceCents / 100 | currency: 'ZAR' : 'symbol' : '1.2-2' : 'en-ZA' }}
-        </span>
-      </div>
+    <div class="card__money">
+      <span class="t-overline">Value</span>
+      <span class="card__money-val">
+        {{ competition().prizeValueCents / 100 | currency: 'ZAR' : 'symbol' : '1.0-0' : 'en-ZA' }}
+      </span>
     </div>
-    <div class="card__foot-right">
-      <span class="t-overline">Closes</span>
-      <app-countdown class="card__countdown" [target]="competition().closesAt" />
+    <div class="card__money">
+      <span class="t-overline">Entry</span>
+      <span class="card__money-val card__money-val--volt">
+        {{ competition().entryPriceCents / 100 | currency: 'ZAR' : 'symbol' : '1.2-2' : 'en-ZA' }}
+      </span>
     </div>
   </footer>
 

@@ -27,9 +27,9 @@
         </h1>
 
         <p class="hero__lede u-reveal u-reveal--5">
-          Skill-based competitions for handpicked PC builds &mdash; from
-          first-real-rig starters to studio-grade workstations. Pick a tier,
-          place your shot, take the build home or the cash equivalent.
+          Skill-based competitions for handpicked PC builds &mdash; from first-real-rig starters to
+          studio-grade workstations. Pick a tier, place your shot, take the build home or the cash
+          equivalent.
         </p>
 
         <div class="hero__cta u-reveal u-reveal--6">
@@ -119,10 +119,6 @@
             <span class="hero__sheet-value t-mono">
               {{ featured.entryPriceCents / 100 | currency: 'ZAR' : 'symbol' : '1.2-2' : 'en-ZA' }}
             </span>
-          </div>
-          <div>
-            <span class="t-overline">Closes in</span>
-            <app-countdown class="hero__sheet-countdown" [target]="featured.closesAt" />
           </div>
         </div>
 

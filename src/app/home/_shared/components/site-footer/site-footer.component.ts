@@ -6,7 +6,7 @@ import { DatePipe } from '@angular/common';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DatePipe],
   templateUrl: './site-footer.component.html',
-  styleUrl: './site-footer.component.scss'
+  styleUrl: './site-footer.component.scss',
 })
 export class SiteFooterComponent {
   protected readonly year = new Date();

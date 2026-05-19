@@ -7,7 +7,7 @@ import { CompetitionCardComponent } from '../competition-card/competition-card.c
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CompetitionCardComponent],
   templateUrl: './featured-competitions.component.html',
-  styleUrl: './featured-competitions.component.scss'
+  styleUrl: './featured-competitions.component.scss',
 })
 export class FeaturedCompetitionsComponent {
   private readonly service = inject(MockCompetitionsService);
