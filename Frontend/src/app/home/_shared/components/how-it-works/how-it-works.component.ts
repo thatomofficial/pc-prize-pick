@@ -1,10 +1,16 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
+interface StepCta {
+  label: string;
+  href: string;
+}
+
 interface Step {
   num: string;
   title: string;
   body: string;
   detail: string;
+  cta?: StepCta;
 }
 
 @Component({
@@ -29,9 +35,10 @@ export class HowItWorksComponent {
     },
     {
       num: '03',
-      title: 'Place your shot',
-      body: 'Mark the exact spot on the puzzle image. Closest pixel to the target wins. No randomness.',
+      title: 'Spot the ball',
+      body: 'Each wave we publish a photo of the prize build with a ball digitally removed. Click where you reckon it was. Closest pixel wins; entry timestamp settles ties.',
       detail: 'Skill, not chance',
+      cta: { label: 'Try a practice round →', href: '/skill' },
     },
     {
       num: '04',

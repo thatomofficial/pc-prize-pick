@@ -45,7 +45,7 @@ take the skill shot, and learn whether they won:
 2. View the competition detail and see specs, entries, countdown.
 3. Sign up / sign in.
 4. Pick entry count, see ZAR total, accept the discount tier, pay.
-5. After payment, take the Spot-the-Pixel skill shot.
+5. After payment, take the Spot-the-Ball skill shot.
 6. Receive an email confirming entry + skill submission.
 7. After the draw closes, receive an email with the result.
 8. See entries and outcomes on the account dashboard.
@@ -241,27 +241,39 @@ alone; they all unblock something downstream.
   - Twitter / WhatsApp / copy-link with prefilled copy that includes the
     countdown.
 
-### E4 · Skill mechanic — Spot-the-Pixel
+### E4 · Skill mechanic — Spot-the-Ball
 
-The core legal differentiator. The implementation must be defensible.
+Direct port of Dream Drive's mechanic. Each wave's challenge is a single
+still photo — typically the prize PC build staged with a tennis-ball /
+ping-pong-ball placed somewhere in frame — with the ball digitally
+removed before publication. The player clicks where they think the ball
+was. Closest pixel to the original position wins; entry timestamp breaks
+ties. Inherits Dream Drive's established legal posture under SA law.
 
 - `[ ]` **E4.1 — `SkillChallengeService` API contract.** MVP.
   - `GET /api/competitions/:slug/challenge` returns `{ imageUrl,
-    challengeId, expiresAt }`.
+    challengeId, expiresAt, imageWidth, imageHeight }`.
   - `POST /api/skill-submissions` accepts `{ challengeId, x, y,
-    submittedAt }` and returns receipt id.
+    submittedAt }` and returns receipt id. `x` / `y` are integer pixel
+    coordinates in the natural image space (not the rendered viewport).
   - `expiresAt` is bound by the competition's wave close, which itself sits
     on the 28-day cycle — challenges cannot be submitted after wave close.
 - `[ ]` **E4.2 — Skill UI.** MVP.
-  - Full-bleed image. User taps / clicks to place a crosshair.
-  - Pinch-zoom support on touch; arrow-key nudge on keyboard.
-  - Submit confirms the coordinate; cannot be changed after submit.
+  - Full-bleed challenge image with a click / tap target that places a
+    crosshair at the cursor.
+  - Pinch-zoom support on touch; arrow-key nudge on keyboard for fine
+    placement.
+  - Submit confirms the coordinate; the choice cannot be changed once
+    submitted.
 - `[ ]` **E4.3 — Practice mode.**
-  - Reduced-stakes practice round, no entry burned. Used to teach the
-    mechanic.
+  - Reduced-stakes practice round against a sample image, no entry
+    burned. Used to teach the mechanic to first-time entrants.
 - `[ ]` **E4.4 — Audit log.**
-  - Every submission writes an immutable record with client-side timestamp
-    and server-side received-at for tie-breaking.
+  - Every submission writes an immutable record with the client
+    timestamp and the server-received timestamp. The server-received
+    timestamp is authoritative for tie-breaking.
+  - The original (un-edited) image and its ball position `(bx, by)` are
+    stored alongside the challenge so any draw can be re-verified.
 
 ### E5 · Entry purchase & checkout
 

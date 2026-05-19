@@ -1,0 +1,86 @@
+<app-site-nav />
+
+<main class="demo">
+  <div class="u-container demo__inner">
+    <header class="demo__masthead">
+      <span class="t-overline t-overline--volt">
+        <span class="u-live-dot"></span>
+        <span>Spot-the-Ball &middot; practice round</span>
+      </span>
+      <a class="demo__back t-overline" href="/">← Back to homepage</a>
+    </header>
+
+    <div class="demo__grid">
+      <section class="demo__primary">
+        <h1 class="demo__heading">
+          Mark the <em class="demo__heading-em">ball</em>.
+        </h1>
+        <p class="demo__lede">
+          Each wave we publish one photo of the prize build with a ball
+          digitally removed. Click where you reckon it was. The closest pixel
+          to the original wins; ties go to the earliest entry.
+        </p>
+
+        <app-ball-picker
+          [imageUrl]="challenge.imageUrl"
+          imageAlt="Practice challenge image — workshop bench with the prize build"
+          [locked]="submitted()"
+          (submit)="onLockIn($event)"
+        />
+      </section>
+
+      <aside class="demo__sidebar">
+        <div class="demo__panel">
+          <span class="t-overline">Challenge</span>
+          <h2 class="demo__panel-title">{{ challenge.title }}</h2>
+          <p class="demo__panel-meta">№ {{ challenge.id }} · {{ challenge.naturalWidth }} × {{ challenge.naturalHeight }} px</p>
+        </div>
+
+        <div class="demo__panel">
+          <span class="t-overline">Wave closes</span>
+          <app-countdown class="demo__countdown" [target]="waveCloseAt" />
+        </div>
+
+        @if (receipt(); as r) {
+          <div class="demo__panel demo__panel--receipt">
+            <span class="t-overline t-overline--volt">Receipt &middot; demo only</span>
+            <dl class="demo__receipt">
+              <div>
+                <dt>ID</dt>
+                <dd class="t-mono">{{ r.id }}</dd>
+              </div>
+              <div>
+                <dt>Your pick</dt>
+                <dd class="t-mono">{{ r.x }} , {{ r.y }}</dd>
+              </div>
+              <div>
+                <dt>Distance to ball</dt>
+                <dd class="t-mono">{{ r.distancePx }} px</dd>
+              </div>
+              <div>
+                <dt>Hypothetical rank</dt>
+                <dd class="t-mono">{{ r.rank }}</dd>
+              </div>
+            </dl>
+            <p class="demo__receipt-note">
+              Not a real entry. The target coordinate is hardcoded for this
+              practice round so you can see how skill stacks against
+              the closest-pixel rule.
+            </p>
+          </div>
+        } @else {
+          <div class="demo__panel demo__panel--ghost">
+            <span class="t-overline">No submission yet</span>
+            <p class="demo__panel-help">
+              Place the crosshair, nudge with arrow keys, then hit
+              <strong>Lock in</strong> when you&rsquo;re happy. One shot per
+              practice round.
+            </p>
+          </div>
+        }
+      </aside>
+    </div>
+  </div>
+</main>
+
+<app-site-footer />
