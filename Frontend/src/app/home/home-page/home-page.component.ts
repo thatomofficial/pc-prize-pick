@@ -6,7 +6,6 @@ import { WinnersTickerComponent } from '../_shared/components/winners-ticker/win
 import { FeaturedCompetitionsComponent } from '../_shared/components/featured-competitions/featured-competitions.component';
 import { PrizeTiersComponent } from '../_shared/components/prize-tiers/prize-tiers.component';
 import { HowItWorksComponent } from '../_shared/components/how-it-works/how-it-works.component';
-import { SocialProofComponent } from '../_shared/components/social-proof/social-proof.component';
 import { SiteFooterComponent } from '../_shared/components/site-footer/site-footer.component';
 import { MockCompetitionsService } from '../../_shared/services/mock-competitions.service';
 
@@ -21,7 +20,6 @@ import { MockCompetitionsService } from '../../_shared/services/mock-competition
     FeaturedCompetitionsComponent,
     PrizeTiersComponent,
     HowItWorksComponent,
-    SocialProofComponent,
     SiteFooterComponent,
   ],
   templateUrl: './home-page.component.html',

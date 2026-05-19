@@ -5,6 +5,7 @@ import { SignInScreenComponent } from './auth/sign-in-screen/sign-in-screen.comp
 import { RegisterScreenComponent } from './auth/register-screen/register-screen.component';
 import { ForgotPasswordScreenComponent } from './auth/forgot-password-screen/forgot-password-screen.component';
 import { AccountPageComponent } from './account/account-page/account-page.component';
+import { WinnersPageComponent } from './winners/winners-page/winners-page.component';
 import { authGuard, guestGuard } from './_shared/guards/auth.guard';
 
 export const routes: Routes = [
@@ -17,6 +18,7 @@ export const routes: Routes = [
     canActivate: [guestGuard],
   },
   { path: 'account', component: AccountPageComponent, canActivate: [authGuard] },
+  { path: 'winners', component: WinnersPageComponent },
   { path: 'skill', component: SkillDemoPageComponent },
   { path: '**', redirectTo: '' },
 ];
