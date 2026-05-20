@@ -6,9 +6,9 @@
   </a>
 
   <ul class="nav__links" role="list">
-    <li><a class="nav__link" href="/#competitions">Competitions</a></li>
-    <li><a class="nav__link" href="/#tiers">Tiers</a></li>
-    <li><a class="nav__link" href="/#how">How it works</a></li>
+    <li><a class="nav__link" routerLink="/competitions">Competitions</a></li>
+    <li><a class="nav__link" routerLink="/tiers">Tiers</a></li>
+    <li><a class="nav__link" routerLink="/how-it-works">How it works</a></li>
     <li><a class="nav__link" routerLink="/winners">Winners</a></li>
   </ul>
 
@@ -28,7 +28,7 @@
     } @else {
       <a class="nav__signin" routerLink="/login">Sign in</a>
     }
-    <a class="nav__cta" href="/#competitions">
+    <a class="nav__cta" routerLink="/competitions">
       <span class="nav__cta-text">Pick a build</span>
       <span class="nav__cta-arrow" aria-hidden="true">→</span>
     </a>

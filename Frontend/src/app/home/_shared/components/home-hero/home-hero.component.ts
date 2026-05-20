@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { MockCompetitionsService } from '../../../../_shared/services/mock-competitions.service';
 
 @Component({
   selector: 'app-home-hero',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CurrencyPipe, DatePipe, DecimalPipe],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, RouterLink],
   templateUrl: './home-hero.component.html',
   styleUrl: './home-hero.component.scss',
 })
