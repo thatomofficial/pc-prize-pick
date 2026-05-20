@@ -84,6 +84,26 @@
       color: var(--cream-200);
     }
 
+    &-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5ch;
+      align-self: flex-start;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--volt);
+      padding-bottom: 2px;
+      border-bottom: 1px solid rgba(216, 255, 58, 0.4);
+      transition:
+        gap var(--dur-fast),
+        border-color var(--dur-fast);
+
+      &:hover {
+        gap: 1.1ch;
+        border-color: var(--volt);
+      }
+    }
+
     &-detail {
       margin-top: auto;
       padding-top: var(--s-4);

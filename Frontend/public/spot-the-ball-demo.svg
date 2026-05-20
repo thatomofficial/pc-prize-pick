@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Placeholder Spot-the-Ball challenge image for /skill demo only.
+  Real workshop photography will replace this once available.
+  Hidden "ball" coordinate referenced by SkillDemoPageComponent: (560, 410).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+  <defs>
+    <linearGradient id="bench" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#14110f"/>
+      <stop offset="100%" stop-color="#050403"/>
+    </linearGradient>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1c1815"/>
+      <stop offset="100%" stop-color="#0b0907"/>
+    </linearGradient>
+    <linearGradient id="tower" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a2420"/>
+      <stop offset="100%" stop-color="#0b0907"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="1" r="0.55">
+      <stop offset="0%" stop-color="rgba(216,255,58,0.18)"/>
+      <stop offset="60%" stop-color="rgba(216,255,58,0)"/>
+    </radialGradient>
+    <pattern id="grid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(246,241,231,0.04)" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <!-- backdrop -->
+  <rect width="1200" height="800" fill="url(#wall)"/>
+  <rect width="1200" height="800" fill="url(#grid)"/>
+  <rect x="0" y="540" width="1200" height="260" fill="url(#bench)"/>
+  <line x1="0" y1="540" x2="1200" y2="540" stroke="rgba(246,241,231,0.18)" stroke-width="1"/>
+
+  <!-- back wall plate -->
+  <rect x="60" y="60" width="320" height="200" fill="rgba(246,241,231,0.04)" stroke="rgba(246,241,231,0.12)" stroke-width="1"/>
+  <text x="80" y="100" font-family="ui-monospace, monospace" font-size="22" fill="#807870" letter-spacing="6">APEX / RTX 5090</text>
+  <text x="80" y="138" font-family="ui-monospace, monospace" font-size="11" fill="#4a443e" letter-spacing="3">SOURCED  ·  ASSEMBLED  ·  STRESS-TESTED</text>
+  <text x="80" y="172" font-family="ui-monospace, monospace" font-size="11" fill="#4a443e" letter-spacing="3">CAPE TOWN WORKSHOP</text>
+  <text x="80" y="216" font-family="ui-monospace, monospace" font-size="11" fill="#807870" letter-spacing="3">WAVE  MAY / 26</text>
+
+  <!-- right-side PC tower silhouette -->
+  <g transform="translate(800, 200)">
+    <rect x="0" y="0" width="280" height="380" fill="url(#tower)" stroke="rgba(246,241,231,0.18)" stroke-width="1"/>
+    <rect x="20" y="22" width="240" height="160" fill="rgba(11,9,7,0.6)" stroke="rgba(246,241,231,0.06)" stroke-width="1"/>
+    <text x="32" y="48" font-family="ui-monospace, monospace" font-size="10" fill="#807870" letter-spacing="3">GPU</text>
+    <line x1="20" y1="200" x2="260" y2="200" stroke="rgba(246,241,231,0.06)" stroke-width="1"/>
+    <rect x="20" y="216" width="240" height="40" fill="rgba(246,241,231,0.03)"/>
+    <text x="32" y="240" font-family="ui-monospace, monospace" font-size="10" fill="#807870" letter-spacing="3">CPU</text>
+    <rect x="20" y="266" width="240" height="36" fill="rgba(246,241,231,0.04)"/>
+    <text x="32" y="288" font-family="ui-monospace, monospace" font-size="10" fill="#807870" letter-spacing="3">RAM</text>
+    <rect x="20" y="312" width="240" height="22" fill="rgba(246,241,231,0.02)"/>
+    <text x="32" y="328" font-family="ui-monospace, monospace" font-size="10" fill="#807870" letter-spacing="3">SSD</text>
+    <line x1="84" y1="360" x2="196" y2="360" stroke="#d8ff3a" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <!-- ground glow under tower -->
+  <ellipse cx="940" cy="600" rx="240" ry="40" fill="url(#glow)"/>
+
+  <!-- left props on the bench (no ball drawn — that's the puzzle) -->
+  <g transform="translate(180, 540)">
+    <!-- a coffee mug -->
+    <rect x="0" y="-60" width="58" height="60" fill="#2a2420" stroke="rgba(246,241,231,0.16)" stroke-width="1"/>
+    <rect x="58" y="-44" width="14" height="28" fill="none" stroke="rgba(246,241,231,0.16)" stroke-width="1"/>
+    <line x1="0" y1="-58" x2="58" y2="-58" stroke="rgba(246,241,231,0.32)" stroke-width="1"/>
+    <!-- an opened notebook -->
+    <rect x="120" y="-22" width="220" height="22" fill="#14110f" stroke="rgba(246,241,231,0.16)" stroke-width="1"/>
+    <line x1="230" y1="-22" x2="230" y2="0" stroke="rgba(246,241,231,0.16)" stroke-width="1"/>
+    <line x1="140" y1="-12" x2="220" y2="-12" stroke="rgba(246,241,231,0.18)" stroke-width="1"/>
+    <line x1="240" y1="-12" x2="320" y2="-12" stroke="rgba(246,241,231,0.18)" stroke-width="1"/>
+  </g>
+
+  <!-- foot ruler / scale bar so the player has reference -->
+  <g transform="translate(60, 760)">
+    <line x1="0" y1="0" x2="120" y2="0" stroke="#807870" stroke-width="1"/>
+    <line x1="0" y1="-4" x2="0" y2="4" stroke="#807870" stroke-width="1"/>
+    <line x1="120" y1="-4" x2="120" y2="4" stroke="#807870" stroke-width="1"/>
+    <text x="0" y="-10" font-family="ui-monospace, monospace" font-size="10" fill="#807870" letter-spacing="2">100 px</text>
+  </g>
+
+  <!-- frame -->
+  <rect x="0.5" y="0.5" width="1199" height="799" fill="none" stroke="rgba(246,241,231,0.12)" stroke-width="1"/>
+</svg>

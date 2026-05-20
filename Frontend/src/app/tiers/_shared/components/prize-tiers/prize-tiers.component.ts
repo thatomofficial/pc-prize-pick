@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { MockCompetitionsService } from '../../../../_shared/services/mock-competitions.service';
 
 @Component({
   selector: 'app-prize-tiers',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CurrencyPipe],
+  imports: [CurrencyPipe, RouterLink],
   templateUrl: './prize-tiers.component.html',
   styleUrl: './prize-tiers.component.scss',
 })
