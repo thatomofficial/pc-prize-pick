@@ -1,0 +1,38 @@
+# Mirrors work/Frontend's ci-gated.yml but for GitHub Actions.
+# Gates PRs into dev / qa / main against a clean Frontend build + tests.
+name: Frontend · gated PR
+
+on:
+  pull_request:
+    branches: [dev, qa, main]
+    paths:
+      - 'Frontend/**'
+      - '.github/workflows/frontend-ci-gated.yml'
+
+defaults:
+  run:
+    working-directory: Frontend
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check + production build
+        run: npm run build
+
+      - name: Unit tests (vitest)
+        run: npm test -- --run

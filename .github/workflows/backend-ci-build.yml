@@ -1,0 +1,55 @@
+# On push to dev / qa / main, publish the API and upload the result as a
+# downloadable artifact ready for whichever deploy target you wire up next
+# (Azure App Service, container image, IIS, etc.).
+name: Backend · branch build
+
+on:
+  push:
+    branches: [dev, qa, main]
+    paths:
+      - 'Backend/**'
+      - '.github/workflows/backend-ci-build.yml'
+
+defaults:
+  run:
+    working-directory: Backend
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Backend/**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore PcPrizePick.slnx
+
+      - name: Build (Release)
+        run: dotnet build PcPrizePick.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test PcPrizePick.slnx --configuration Release --no-build
+
+      - name: Publish Api
+        run: dotnet publish src/PcPrizePick.Api/PcPrizePick.Api.csproj --configuration Release --no-build --output ./publish
+
+      - name: Upload publish artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ github.ref_name }}-${{ github.run_number }}
+          path: Backend/publish/
+          retention-days: 14
+          if-no-files-found: error
