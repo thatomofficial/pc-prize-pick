@@ -36,8 +36,8 @@ export class HowItWorksComponent {
     {
       num: '03',
       title: 'Spot the ball',
-      body: 'Each wave we publish a photo of the prize build with a ball digitally removed. Click where you reckon it was. Closest pixel wins; entry timestamp settles ties.',
-      detail: 'Skill, not chance',
+      body: 'Each wave we publish a photo of the prize PC with a ball digitally removed. Click where you reckon it was. Hit the exact pixel and you win — if more than one person hits it, you all win. If nobody is exact, the closest click takes the build.',
+      detail: 'Exact-pixel wins; closest takes the fallback',
       cta: { label: 'Try a practice round →', href: '/skill' },
     },
     {

@@ -72,9 +72,11 @@ export class SkillDemoPageComponent {
   }
 
   private hypotheticalRank(distancePx: number): string {
-    if (distancePx <= 12) return 'top 1% — winning territory';
-    if (distancePx <= 40) return 'top 10% — credible shot';
-    if (distancePx <= 120) return 'top 50% — keep practising';
-    return 'bottom half — try again, the ball is on the bench somewhere';
+    if (distancePx === 0) return 'exact pixel — you win';
+    if (distancePx <= 12)
+      return 'one pixel off, but only exact hits win — fallback territory if nobody is exact';
+    if (distancePx <= 40) return 'closest-fallback territory if nobody is exact';
+    if (distancePx <= 120) return 'somewhere in the right neighbourhood; aim sharper';
+    return 'way off — the ball is on the bench somewhere';
   }
 }

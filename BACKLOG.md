@@ -243,19 +243,32 @@ alone; they all unblock something downstream.
 
 ### E4 · Skill mechanic — Spot-the-Ball
 
-Direct port of Dream Drive's mechanic. Each wave's challenge is a single
-still photo — typically the prize PC build staged with a tennis-ball /
-ping-pong-ball placed somewhere in frame — with the ball digitally
-removed before publication. The player clicks where they think the ball
-was. Closest pixel to the original position wins; entry timestamp breaks
-ties. Inherits Dream Drive's established legal posture under SA law.
+Spot-the-Ball with a twist. Each wave's challenge is a single still photo
+— typically the prize PC staged with a tennis-ball / ping-pong-ball
+placed somewhere in frame — with the ball digitally removed before
+publication. The player clicks where they think the ball was.
+
+**Win rule** (deliberate divergence from Dream Drive — see
+`memory/project_skill_mechanic.md`):
+
+1. **Exact-pixel hit wins.** Every submission whose `(x, y)` exactly
+   matches the stored target `(bx, by)` is a winner — 0, 1, or many.
+   No tie-breaking among exact hits.
+2. **Closest-pixel fallback** when nobody is exact. The single submission
+   closest by Euclidean distance wins; ties broken by server-received
+   timestamp.
+
+**Supply model.** Prize PCs are pre-builts procured from the entry-money
+pool. Workshop buys **one unit per winner** after the wave closes.
+Margin discipline depends on keeping exact-pixel winners rare — image
+selection + ball placement matter.
 
 - `[ ]` **E4.1 — `SkillChallengeService` API contract.** MVP.
   - `GET /api/competitions/:slug/challenge` returns `{ imageUrl,
 challengeId, expiresAt, imageWidth, imageHeight }`.
-  - `POST /api/skill-submissions` accepts `{ challengeId, x, y,
-submittedAt }` and returns receipt id. `x` / `y` are integer pixel
-    coordinates in the natural image space (not the rendered viewport).
+  - `POST /api/skill-submissions` accepts `{ challengeId, x, y, submittedAt }`
+    and returns a receipt id. `x` / `y` are integer pixel coordinates in
+    the natural image space (not the rendered viewport).
   - `expiresAt` is bound by the competition's wave close, which itself sits
     on the 28-day cycle — challenges cannot be submitted after wave close.
 - `[ ]` **E4.2 — Skill UI.** MVP.
@@ -268,12 +281,15 @@ submittedAt }` and returns receipt id. `x` / `y` are integer pixel
 - `[ ]` **E4.3 — Practice mode.**
   - Reduced-stakes practice round against a sample image, no entry
     burned. Used to teach the mechanic to first-time entrants.
-- `[ ]` **E4.4 — Audit log.**
+- `[ ]` **E4.4 — Audit log + winner selection.**
   - Every submission writes an immutable record with the client
-    timestamp and the server-received timestamp. The server-received
-    timestamp is authoritative for tie-breaking.
-  - The original (un-edited) image and its ball position `(bx, by)` are
-    stored alongside the challenge so any draw can be re-verified.
+    timestamp and the server-received timestamp.
+  - The original (un-edited) image and target `(bx, by)` are stored
+    alongside the challenge so any draw can be re-verified.
+  - Winner-selection job implements the two-stage rule above, emits one
+    audit event per winner, and persists both stages' inputs + outputs
+    (exact-hit count + fallback distances) even when zero or many
+    winners result.
 
 ### E5 · Entry purchase & checkout
 
@@ -386,10 +402,17 @@ or a section in the same app behind admin guard.
 - `[ ]` **E13.1 — Competition CRUD.**
   - Create / publish / close competitions, edit spec, upload images.
 - `[ ]` **E13.2 — Draw runner.**
-  - Trigger the draw, see audit log, confirm winner.
+  - Trigger the draw, see the audit log, confirm winners.
   - Defaults to the wave's scheduled draw date (28-day cron from a fixed
     epoch). Manual override exists for legal / operational holds but emits
     an audit event when used.
+  - Calls the E4.4 winner-selection job (exact-pixel first, closest-pixel
+    fallback). Surfaces the **winner list** (may be 1 or many) plus
+    fallback distances in a reviewable preview before publication.
+  - Triggers downstream **procurement workflow** (BACKLOG E13.3): one
+    pre-built PC per winner, paid from the wave's entry-money pool.
+  - Per-winner outcome flag captures whether they elected the PC or the
+    cash equivalent.
 - `[ ]` **E13.3 — Manual cash-out / overrides.**
 - `[ ]` **E13.4 — Audit log viewer.**
 
