@@ -1,0 +1,173 @@
+{
+  "$schema": "Static catalog of GPU SKUs commonly sold in SA prebuilt PCs. Sources: NVIDIA/AMD product pages. Manufacturer-published.",
+  "gpus": [
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 4060",
+      "aliases": ["GeForce RTX 4060", "NVIDIA RTX 4060", "Nvidia RTX 4060"],
+      "vram_gb": 8,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 115
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 4060 Ti",
+      "aliases": ["GeForce RTX 4060 Ti", "NVIDIA RTX 4060 Ti"],
+      "vram_gb": 8,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 160
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 4070",
+      "aliases": ["GeForce RTX 4070", "NVIDIA RTX 4070"],
+      "vram_gb": 12,
+      "memory_type": "GDDR6X",
+      "power_draw_watts": 200
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 4070 SUPER",
+      "aliases": ["GeForce RTX 4070 SUPER", "NVIDIA RTX 4070 SUPER"],
+      "vram_gb": 12,
+      "memory_type": "GDDR6X",
+      "power_draw_watts": 220
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 4070 Ti",
+      "aliases": ["GeForce RTX 4070 Ti", "NVIDIA RTX 4070 Ti"],
+      "vram_gb": 12,
+      "memory_type": "GDDR6X",
+      "power_draw_watts": 285
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 4070 Ti SUPER",
+      "aliases": ["GeForce RTX 4070 Ti SUPER", "NVIDIA RTX 4070 Ti SUPER"],
+      "vram_gb": 16,
+      "memory_type": "GDDR6X",
+      "power_draw_watts": 285
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 4080",
+      "aliases": ["GeForce RTX 4080", "NVIDIA RTX 4080"],
+      "vram_gb": 16,
+      "memory_type": "GDDR6X",
+      "power_draw_watts": 320
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 4080 SUPER",
+      "aliases": ["GeForce RTX 4080 SUPER", "NVIDIA RTX 4080 SUPER"],
+      "vram_gb": 16,
+      "memory_type": "GDDR6X",
+      "power_draw_watts": 320
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 4090",
+      "aliases": ["GeForce RTX 4090", "NVIDIA RTX 4090"],
+      "vram_gb": 24,
+      "memory_type": "GDDR6X",
+      "power_draw_watts": 450
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 5060",
+      "aliases": ["GeForce RTX 5060", "NVIDIA RTX 5060", "Nvidia RTX 5060"],
+      "vram_gb": 8,
+      "memory_type": "GDDR7",
+      "power_draw_watts": 150
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 5060 Ti",
+      "aliases": ["GeForce RTX 5060 Ti", "NVIDIA RTX 5060 Ti", "Nvidia RTX 5060 Ti"],
+      "vram_gb": 16,
+      "memory_type": "GDDR7",
+      "power_draw_watts": 180
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 5070",
+      "aliases": ["GeForce RTX 5070", "NVIDIA RTX 5070", "Nvidia RTX 5070"],
+      "vram_gb": 12,
+      "memory_type": "GDDR7",
+      "power_draw_watts": 250
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 5070 Ti",
+      "aliases": ["GeForce RTX 5070 Ti", "NVIDIA RTX 5070 Ti", "Nvidia RTX 5070 Ti"],
+      "vram_gb": 16,
+      "memory_type": "GDDR7",
+      "power_draw_watts": 300
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 5080",
+      "aliases": ["GeForce RTX 5080", "NVIDIA RTX 5080", "Nvidia RTX 5080"],
+      "vram_gb": 16,
+      "memory_type": "GDDR7",
+      "power_draw_watts": 360
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 5090",
+      "aliases": ["GeForce RTX 5090", "NVIDIA RTX 5090", "Nvidia RTX 5090"],
+      "vram_gb": 32,
+      "memory_type": "GDDR7",
+      "power_draw_watts": 575
+    },
+    {
+      "brand": "AMD",
+      "model": "Radeon RX 7700 XT",
+      "aliases": ["Radeon RX 7700 XT", "AMD Radeon RX 7700 XT"],
+      "vram_gb": 12,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 245
+    },
+    {
+      "brand": "AMD",
+      "model": "Radeon RX 7800 XT",
+      "aliases": ["Radeon RX 7800 XT", "AMD Radeon RX 7800 XT"],
+      "vram_gb": 16,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 263
+    },
+    {
+      "brand": "AMD",
+      "model": "Radeon RX 7900 XT",
+      "aliases": ["Radeon RX 7900 XT", "AMD Radeon RX 7900 XT"],
+      "vram_gb": 20,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 315
+    },
+    {
+      "brand": "AMD",
+      "model": "Radeon RX 7900 XTX",
+      "aliases": ["Radeon RX 7900 XTX", "AMD Radeon RX 7900 XTX"],
+      "vram_gb": 24,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 355
+    },
+    {
+      "brand": "AMD",
+      "model": "Radeon RX 9070",
+      "aliases": ["Radeon RX 9070", "AMD Radeon RX 9070"],
+      "vram_gb": 16,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 220
+    },
+    {
+      "brand": "AMD",
+      "model": "Radeon RX 9070 XT",
+      "aliases": ["Radeon RX 9070 XT", "AMD Radeon RX 9070 XT"],
+      "vram_gb": 16,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 304
+    }
+  ]
+}
