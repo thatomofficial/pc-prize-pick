@@ -168,6 +168,136 @@
       "vram_gb": 16,
       "memory_type": "GDDR6",
       "power_draw_watts": 304
+    },
+
+    {
+      "brand": "NVIDIA",
+      "model": "RTX A4000",
+      "aliases": ["NVIDIA RTX A4000", "Quadro RTX A4000"],
+      "vram_gb": 16,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 140
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX A4500",
+      "aliases": ["NVIDIA RTX A4500", "Quadro RTX A4500"],
+      "vram_gb": 20,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 200
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX A5000",
+      "aliases": ["NVIDIA RTX A5000", "Quadro RTX A5000"],
+      "vram_gb": 24,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 230
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX A5500",
+      "aliases": ["NVIDIA RTX A5500", "Quadro RTX A5500"],
+      "vram_gb": 24,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 230
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX A6000",
+      "aliases": ["NVIDIA RTX A6000", "Quadro RTX A6000"],
+      "vram_gb": 48,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 300
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 2000 Ada",
+      "aliases": ["NVIDIA RTX 2000 Ada", "RTX 2000 Ada Generation", "Quadro RTX 2000 Ada"],
+      "vram_gb": 16,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 70
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 4000 Ada",
+      "aliases": ["NVIDIA RTX 4000 Ada", "RTX 4000 Ada Generation", "Quadro RTX 4000 Ada"],
+      "vram_gb": 20,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 130
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 4500 Ada",
+      "aliases": ["NVIDIA RTX 4500 Ada", "RTX 4500 Ada Generation", "Quadro RTX 4500 Ada"],
+      "vram_gb": 24,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 210
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 5000 Ada",
+      "aliases": ["NVIDIA RTX 5000 Ada", "RTX 5000 Ada Generation", "Quadro RTX 5000 Ada"],
+      "vram_gb": 32,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 250
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX 6000 Ada",
+      "aliases": ["NVIDIA RTX 6000 Ada", "RTX 6000 Ada Generation", "Quadro RTX 6000 Ada"],
+      "vram_gb": 48,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 300
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX PRO 4000 Blackwell",
+      "aliases": ["NVIDIA RTX PRO 4000 Blackwell", "RTX PRO 4000"],
+      "vram_gb": 24,
+      "memory_type": "GDDR7",
+      "power_draw_watts": 140
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX PRO 5000 Blackwell",
+      "aliases": ["NVIDIA RTX PRO 5000 Blackwell", "RTX PRO 5000"],
+      "vram_gb": 48,
+      "memory_type": "GDDR7",
+      "power_draw_watts": 300
+    },
+    {
+      "brand": "NVIDIA",
+      "model": "RTX PRO 6000 Blackwell",
+      "aliases": ["NVIDIA RTX PRO 6000 Blackwell", "RTX PRO 6000"],
+      "vram_gb": 96,
+      "memory_type": "GDDR7",
+      "power_draw_watts": 600
+    },
+
+    {
+      "brand": "AMD",
+      "model": "Radeon PRO W7700",
+      "aliases": ["Radeon PRO W7700", "AMD Radeon PRO W7700"],
+      "vram_gb": 16,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 190
+    },
+    {
+      "brand": "AMD",
+      "model": "Radeon PRO W7800",
+      "aliases": ["Radeon PRO W7800", "AMD Radeon PRO W7800"],
+      "vram_gb": 32,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 260
+    },
+    {
+      "brand": "AMD",
+      "model": "Radeon PRO W7900",
+      "aliases": ["Radeon PRO W7900", "AMD Radeon PRO W7900"],
+      "vram_gb": 48,
+      "memory_type": "GDDR6",
+      "power_draw_watts": 295
     }
   ]
 }

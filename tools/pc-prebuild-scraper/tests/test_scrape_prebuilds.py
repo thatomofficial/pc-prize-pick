@@ -150,6 +150,23 @@ class ScrapePrebuildsTests(unittest.TestCase):
 
         self.assertEqual(first, second)
 
+    def test_catalog_resolves_workstation_gpu_with_quadro_prefix(self) -> None:
+        """Retailers tag workstation cards as 'Quadro RTX 5000 Ada' even
+        though NVIDIA dropped the Quadro branding. The Quadro prefix must
+        be stripped during lookup, and the catalog should resolve to the
+        Ada-generation entry (32 GB GDDR6) rather than the consumer
+        'RTX 5000' digit-pattern false match."""
+        catalog = Catalog.load(FIXTURES.parents[1] / "catalog")
+
+        resolved = catalog.lookup_gpu("Quadro RTX 5000 Ada")
+
+        self.assertIsNotNone(resolved)
+        assert resolved is not None
+        self.assertEqual(resolved.brand, "NVIDIA")
+        self.assertEqual(resolved.model, "RTX 5000 Ada")
+        self.assertEqual(resolved.data["vram_gb"], 32)
+        self.assertEqual(resolved.data["memory_type"], "GDDR6")
+
 
 def sample_source() -> SourceConfig:
     fixture_root = FIXTURES.as_uri() + "/"

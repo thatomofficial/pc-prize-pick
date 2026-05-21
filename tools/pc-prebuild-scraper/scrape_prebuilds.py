@@ -157,8 +157,13 @@ class Catalog:
     @staticmethod
     def _normalize(text: str) -> str:
         cleaned = re.sub(r"\s+", " ", text or "").strip()
+        # Strip vendor / product-line prefixes that retailers append loosely
+        # in front of the actual SKU. "Quadro" survives in retailer copy for
+        # workstation cards even though NVIDIA dropped the branding —
+        # stripping it lets "Quadro RTX 5000 Ada" resolve to the catalog
+        # entry keyed by "RTX 5000 Ada".
         cleaned = re.sub(
-            r"^(?:AMD|NVIDIA|Nvidia|Intel|GeForce|Radeon)\s+",
+            r"^(?:AMD|NVIDIA|Nvidia|Intel|GeForce|Radeon|Quadro)\s+",
             "",
             cleaned,
             flags=re.IGNORECASE,
@@ -791,6 +796,14 @@ SPEC_PATTERNS = {
         r"\b(Intel\s+(?:Core\s+)?i[3579]-\d{4,5}[A-Z]{0,3})\b",
     ],
     "gpu": [
+        # Workstation cards first — these must match before the generic
+        # consumer pattern below or "RTX 5000 Ada" loses its "Ada" suffix
+        # and becomes the non-existent "RTX 5000" consumer SKU.
+        r"\b((?:NVIDIA\s+|Quadro\s+)?RTX\s+A\d{4,5})\b",
+        r"\b((?:NVIDIA\s+|Quadro\s+)?RTX\s*\d{4}\s+Ada(?:\s+Generation)?)\b",
+        r"\b((?:NVIDIA\s+)?RTX\s+PRO\s+\d{4,5}(?:\s+(?:Blackwell|Ada))?)\b",
+        r"\b(Radeon\s+PRO\s+W\d{4})\b",
+        # Consumer cards.
         r"\b((?:NVIDIA\s+|GeForce\s+)?RTX\s?\d{4}\s?(?:Ti SUPER|Ti|SUPER)?)\b",
         r"\b(Radeon\s+RX\s?\d{4}\s?(?:XT|XTX|GRE)?)\b",
         r"\b(Intel\s+Arc\s+[A-Z]\d{3})\b",
