@@ -32,6 +32,41 @@ UTC = dt.timezone.utc
 SAST = dt.timezone(dt.timedelta(hours=2))
 
 
+# --verbose toggles streaming progress events to stdout. Off by default
+# so existing non-interactive runs (CI / scheduled jobs) stay quiet.
+_VERBOSE = False
+
+
+def set_verbose(enabled: bool) -> None:
+    global _VERBOSE
+    _VERBOSE = enabled
+    if enabled:
+        # Windows consoles default to cp1252; switch stdout to UTF-8 so the
+        # Unicode glyphs in event lines (✓ ✗ → …) don't blow up.
+        reconfigure = getattr(sys.stdout, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8")
+            except (ValueError, AttributeError):
+                pass
+
+
+def vlog(tag: str, message: str) -> None:
+    """Print a tagged event line and flush, so the user sees it as the scraper
+    works — not buffered until the process exits. Cheap no-op when --verbose
+    is off."""
+    if _VERBOSE:
+        try:
+            print(f"[{tag}] {message}", flush=True)
+        except UnicodeEncodeError:
+            # Fallback for environments where stdout reconfigure isn't allowed.
+            print(f"[{tag}] {message}".encode("ascii", "replace").decode(), flush=True)
+
+
+def _short_url(url: str, max_len: int = 70) -> str:
+    return url if len(url) <= max_len else "…" + url[-(max_len - 1):]
+
+
 @dataclass(frozen=True)
 class SpecSourceConfig:
     """Component retailer that publishes spec sheets per SKU.
@@ -330,27 +365,37 @@ class SpecLookupClient:
 
         cached = self._read_cache(kind, model_text)
         if cached is not None:
+            vlog(self._config.name.lower(), f"cache hit  {kind}/{model_text}")
             return cached
+
+        vlog(self._config.name.lower(), f"cache miss {kind}/{model_text}")
 
         index = self._link_indexes.get(kind)
         if index is None:
+            vlog(self._config.name.lower(), f"building {kind} link index from {_short_url(category_url)}")
             index = self._build_link_index(category_url)
             self._link_indexes[kind] = index
+            vlog(self._config.name.lower(), f"  → indexed {len(index)} URL(s)")
 
         product_url = self._match_url(index, model_text)
         if not product_url:
+            vlog(self._config.name.lower(), f"  ✗ no slug match for '{model_text}'")
             return None
 
+        vlog(self._config.name.lower(), f"  ✓ matched {_short_url(product_url)}")
         product_html = self._polite_fetch(product_url)
         if product_html is None:
+            vlog(self._config.name.lower(), "  ✗ product fetch failed (likely 403 / network)")
             return None
 
         specs = self._parse_spec_sheet(parse_html_document(product_html), kind)
         if not specs:
+            vlog(self._config.name.lower(), "  ✗ spec sheet didn't parse")
             return None
 
         specs["sourceUrl"] = product_url
         self._write_cache(kind, model_text, specs)
+        vlog(self._config.name.lower(), f"  ✓ parsed + cached: {specs}")
         return specs
 
     def _build_link_index(self, category_url: str) -> dict[str, str]:
@@ -1253,6 +1298,10 @@ def scrape_sources(
     }
 
     for source in sources:
+        vlog(
+            "scrape",
+            f"source={source.name}  maxPages={source.max_pages}  delay={source.request_delay_seconds}s",
+        )
         queue: deque[tuple[str, int]] = deque()
         visited: set[str] = set()
 
@@ -1261,9 +1310,12 @@ def scrape_sources(
             if normalized:
                 queue.append((normalized, 0))
 
+        vlog("scrape", f"queued {len(queue)} start URL(s) from sitemap + config")
+
         pages_for_source = 0
         while queue and pages_for_source < source.max_pages:
             if max_products is not None and len(products_by_url) >= max_products:
+                vlog("scrape", f"max-products cap reached ({max_products}), stopping early")
                 return list(products_by_url.values()), stats
 
             url, depth = queue.popleft()
@@ -1276,12 +1328,16 @@ def scrape_sources(
 
             if robots is not None and not robots.can_fetch(url):
                 stats["pagesSkippedByRobots"] += 1
+                vlog("scrape", f"skipped by robots.txt: {_short_url(url)}")
                 continue
+
+            vlog("scrape", f"fetch d={depth}  {_short_url(url)}")
 
             try:
                 markup = fetcher.fetch_text(url)
             except (OSError, urllib.error.URLError, UnicodeDecodeError) as exc:
                 stats["fetchErrors"].append({"url": url, "error": str(exc)})
+                vlog("scrape", f"  ✗ fetch error: {exc}")
                 continue
 
             pages_for_source += 1
@@ -1290,6 +1346,12 @@ def scrape_sources(
             product = extract_product(document, url, source)
             if product:
                 products_by_url[url] = product
+                vlog(
+                    "scrape",
+                    f"  ✓ product: {product.name[:60]}  R{product.price_cents/100:,.0f}  conf={product.confidence}",
+                )
+            else:
+                vlog("scrape", "  ↺ no product on this page")
 
             if depth >= source.max_depth:
                 continue
@@ -1444,6 +1506,10 @@ def _resolve_cpu(
 
     entry = catalog.lookup_cpu(raw)
     if entry is not None:
+        vlog(
+            "catalog",
+            f"CPU hit '{raw}' → {entry.brand} {entry.model}  ({entry.data.get('cores')}c/{entry.data.get('threads')}t)",
+        )
         key = (entry.brand, entry.model)
         cpu_id = component_uuid("cpu", entry.brand, entry.model)
         if key not in rows:
@@ -1460,11 +1526,14 @@ def _resolve_cpu(
             }
         return cpu_id
 
+    vlog("catalog", f"CPU miss '{raw}' — falling back to spec sources")
+
     # Catalog miss — try the spec lookup sources.
     for client in spec_clients or []:
         looked_up = client.lookup_cpu(raw)
         if not looked_up:
             continue
+        vlog("lookup", f"CPU '{raw}' filled from {client.name}: cores={looked_up.get('cores')} tdp={looked_up.get('tdp_watts')}W")
         brand, model = _split_brand_model(raw)
         key = (brand, model)
         cpu_id = component_uuid("cpu", brand, model)
@@ -1504,6 +1573,10 @@ def _resolve_gpu(
 
     entry = catalog.lookup_gpu(raw)
     if entry is not None:
+        vlog(
+            "catalog",
+            f"GPU hit '{raw}' → {entry.brand} {entry.model}  ({entry.data.get('vram_gb')}GB {entry.data.get('memory_type')})",
+        )
         key = (entry.brand, entry.model)
         gpu_id = component_uuid("gpu", entry.brand, entry.model)
         if key not in rows:
@@ -1517,11 +1590,14 @@ def _resolve_gpu(
             }
         return gpu_id
 
+    vlog("catalog", f"GPU miss '{raw}' — falling back to spec sources")
+
     # Catalog miss — try the spec lookup sources.
     for client in spec_clients or []:
         looked_up = client.lookup_gpu(raw)
         if not looked_up:
             continue
+        vlog("lookup", f"GPU '{raw}' filled from {client.name}: vram={looked_up.get('vram_gb')}GB {looked_up.get('memory_type')}")
         brand, model = _split_brand_model(raw)
         key = (brand, model)
         gpu_id = component_uuid("gpu", brand, model)
@@ -1969,13 +2045,22 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="Disable robots.txt checks. Use only for local fixtures or with permission.",
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Stream per-URL fetches, catalog hits/misses, and spec lookups to stdout.",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
+    set_verbose(args.verbose)
     sources, spec_sources = load_config(args.config)
     catalog = Catalog.load(args.catalog_dir)
+    vlog("config", f"loaded {len(sources)} source(s), {len(spec_sources)} spec source(s)")
+    vlog("catalog", f"loaded {len(catalog._cpus)} CPUs, {len(catalog._gpus)} GPUs")
     fetcher = Fetcher(args.user_agent, args.timeout_seconds)
     robots = None if args.no_robots else RobotsCache(args.user_agent, args.timeout_seconds)
 
