@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -11,6 +12,8 @@ from scrape_prebuilds import (  # noqa: E402
     Catalog,
     Fetcher,
     SourceConfig,
+    SpecLookupClient,
+    SpecSourceConfig,
     build_competition_drafts,
     build_inventory,
     component_uuid,
@@ -19,6 +22,23 @@ from scrape_prebuilds import (  # noqa: E402
     parse_html_document,
     scrape_sources,
 )
+
+
+class _FixtureFetcher:
+    """Stand-in for Fetcher that resolves URLs from a fixed dict of
+    URL → local fixture path. Lets the SpecLookupClient tests run fully
+    offline without going through file:// URLs in the category HTML."""
+
+    def __init__(self, url_to_path: dict[str, Path]) -> None:
+        self._urls = url_to_path
+        self.calls: list[str] = []
+
+    def fetch_text(self, url: str) -> str:
+        self.calls.append(url)
+        path = self._urls.get(url)
+        if path is None:
+            raise OSError(f"no fixture for {url}")
+        return path.read_text(encoding="utf-8")
 
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -149,6 +169,76 @@ class ScrapePrebuildsTests(unittest.TestCase):
         second = component_uuid("cpu", "  AMD  ", "ryzen 9 9950x3d")
 
         self.assertEqual(first, second)
+
+    def test_spec_lookup_resolves_cpu_from_wootware_fixture(self) -> None:
+        """Catalog-miss fallback path: SpecLookupClient should find the
+        Ryzen 5 5500 link on the category fixture, fetch the product
+        fixture, and parse the spec table into the cpus-row shape."""
+        category_url = "https://wootware.example/cpus"
+        product_url = (
+            "https://wootware.example/"
+            "amd-100-100000457box-ryzen-5-5500-4-2ghz-6-core-zen-3-socket-am4-desktop-cpu.html"
+        )
+        fetcher = _FixtureFetcher({
+            category_url: FIXTURES / "wootware-category-cpus.html",
+            product_url: FIXTURES / "wootware-cpu-ryzen-5-5500.html",
+        })
+        cache_dir = Path(tempfile.mkdtemp())
+        config = SpecSourceConfig(
+            name="Wootware",
+            base_url="https://wootware.example",
+            cpu_category_url=category_url,
+            request_delay_seconds=0,
+        )
+        client = SpecLookupClient(config, fetcher, cache_dir)
+
+        specs = client.lookup_cpu("AMD Ryzen 5 5500")
+
+        self.assertIsNotNone(specs)
+        assert specs is not None
+        self.assertEqual(specs["cores"], 6)
+        self.assertEqual(specs["threads"], 12)
+        self.assertEqual(specs["base_clock_ghz"], 3.6)
+        self.assertEqual(specs["boost_clock_ghz"], 4.2)
+        self.assertEqual(specs["socket"], "AM4")
+        self.assertEqual(specs["tdp_watts"], 65)
+        self.assertEqual(specs["sourceUrl"], product_url)
+
+    def test_spec_lookup_cache_short_circuits_repeat_fetches(self) -> None:
+        """Second call for the same SKU should not refetch — the cache file
+        from the first call must short-circuit the category + product
+        fetch entirely."""
+        category_url = "https://wootware.example/cpus"
+        product_url = (
+            "https://wootware.example/"
+            "amd-100-100000457box-ryzen-5-5500-4-2ghz-6-core-zen-3-socket-am4-desktop-cpu.html"
+        )
+        fetcher = _FixtureFetcher({
+            category_url: FIXTURES / "wootware-category-cpus.html",
+            product_url: FIXTURES / "wootware-cpu-ryzen-5-5500.html",
+        })
+        cache_dir = Path(tempfile.mkdtemp())
+        config = SpecSourceConfig(
+            name="Wootware",
+            base_url="https://wootware.example",
+            cpu_category_url=category_url,
+            request_delay_seconds=0,
+        )
+        client = SpecLookupClient(config, fetcher, cache_dir)
+
+        first = client.lookup_cpu("AMD Ryzen 5 5500")
+        calls_after_first = list(fetcher.calls)
+        # A new client instance reading the same cache directory must avoid
+        # any network round-trip the second time around.
+        fresh_client = SpecLookupClient(config, fetcher, cache_dir)
+        second = fresh_client.lookup_cpu("AMD Ryzen 5 5500")
+
+        self.assertEqual(first, second)
+        self.assertEqual(
+            fetcher.calls,
+            calls_after_first,
+            "Second lookup must hit cache instead of refetching",
+        )
 
     def test_catalog_resolves_workstation_gpu_with_quadro_prefix(self) -> None:
         """Retailers tag workstation cards as 'Quadro RTX 5000 Ada' even

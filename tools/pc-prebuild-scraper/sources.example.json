@@ -32,5 +32,14 @@
       "maxDepth": 2,
       "requestDelaySeconds": 1.5
     }
+  ],
+  "specSources": [
+    {
+      "name": "Example component retailer",
+      "baseUrl": "https://www.example-component-retailer.co.za",
+      "cpuCategoryUrl": "https://www.example-component-retailer.co.za/computer-hardware/cpus",
+      "gpuCategoryUrl": "https://www.example-component-retailer.co.za/computer-hardware/graphics-cards",
+      "requestDelaySeconds": 10
+    }
   ]
 }

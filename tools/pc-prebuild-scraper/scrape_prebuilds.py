@@ -33,6 +33,37 @@ SAST = dt.timezone(dt.timedelta(hours=2))
 
 
 @dataclass(frozen=True)
+class SpecSourceConfig:
+    """Component retailer that publishes spec sheets per SKU.
+
+    Used as a fallback when the static catalog doesn't have a CPU/GPU
+    model. Currently shaped for Wootware (Magento storefront with one
+    product page per SKU at ``/<slug>.html``), but the parser is
+    deliberately generic — adding another retailer is a config change
+    plus, if their key/value labels differ, an extra entry in the
+    ``_SPEC_SHEET_FIELD_MAP`` constant.
+    """
+
+    name: str
+    base_url: str
+    cpu_category_url: str | None = None
+    gpu_category_url: str | None = None
+    request_delay_seconds: float = 10.0
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any]) -> "SpecSourceConfig":
+        if "name" not in value or "baseUrl" not in value:
+            raise ValueError("specSources entry needs 'name' and 'baseUrl'.")
+        return cls(
+            name=str(value["name"]),
+            base_url=str(value["baseUrl"]),
+            cpu_category_url=value.get("cpuCategoryUrl"),
+            gpu_category_url=value.get("gpuCategoryUrl"),
+            request_delay_seconds=float(value.get("requestDelaySeconds", 10.0)),
+        )
+
+
+@dataclass(frozen=True)
 class SourceConfig:
     name: str
     base_url: str
@@ -211,6 +242,258 @@ class Catalog:
         return exact or (best_contain[1] if best_contain else None)
 
 
+# ---------------------------------------------------------------------------
+# Spec lookup against a component retailer (Wootware-style site).
+# ---------------------------------------------------------------------------
+#
+# The catalog covers ~95% of common SA prebuilt SKUs, but newer / older /
+# niche parts (Ryzen 5 5500, future Blackwell variants, etc.) need a runtime
+# fallback. Component retailers like Wootware publish per-SKU spec sheets in
+# server-rendered HTML — we scan their CPU/GPU category for the model name,
+# follow the matching product link, parse a key/value spec table, and cache
+# the result on disk so subsequent runs are instant.
+#
+# The cache key is the catalog-style lookup string (e.g. "AMD Ryzen 5 5500"),
+# slugified. Cache entries TTL after 30 days.
+
+_SPEC_SHEET_PATTERNS: dict[str, dict[str, list[str]]] = {
+    "cpu": {
+        "cores": [r"(?:Number of\s+)?(?:CPU\s+)?Cores?\s*:?\s*(\d{1,3})"],
+        "threads": [r"(?:Number of\s+)?Threads?\s*:?\s*(\d{1,3})"],
+        "base_clock_ghz": [
+            r"Base\s+Clock\s*(?:Speed)?\s*:?\s*(\d+(?:\.\d+)?)\s*GHz",
+        ],
+        "boost_clock_ghz": [
+            r"(?:Max(?:imum)?\s+)?Boost\s+Clock\s*:?\s*(?:Up\s+to\s+)?(\d+(?:\.\d+)?)\s*GHz",
+            r"Max(?:imum)?\s+Clock\s*:?\s*(?:Up\s+to\s+)?(\d+(?:\.\d+)?)\s*GHz",
+        ],
+        "socket": [
+            r"(?:CPU\s+|Processor\s+)?Socket\s*:?\s*(AM\d|sTR\d|sTRX\d|LGA\d{3,4})",
+        ],
+        "tdp_watts": [
+            r"(?:Default\s+|Max(?:imum)?\s+)?TDP\s*:?\s*(\d{2,4})\s*W",
+            r"Thermal\s+Design\s+Power\s*:?\s*(\d{2,4})\s*W",
+        ],
+    },
+    "gpu": {
+        "vram_gb": [
+            r"(?:Video\s+|Graphics\s+)?Memory(?:\s+Size)?\s*:?\s*(\d{1,3})\s*GB",
+            r"VRAM\s*:?\s*(\d{1,3})\s*GB",
+        ],
+        "memory_type": [
+            r"Memory\s+Type\s*:?\s*(GDDR\d+(?:X)?|HBM\d+)",
+            r"VRAM\s+Type\s*:?\s*(GDDR\d+(?:X)?|HBM\d+)",
+        ],
+        "power_draw_watts": [
+            r"(?:Max(?:imum)?\s+)?(?:Power\s+(?:Consumption|Draw|Usage)|Board\s+Power|TGP|TBP)\s*:?\s*(\d{2,4})\s*W",
+            r"(?:Recommended\s+)?Power\s+(?:Supply|Requirements?)\s*:?\s*(\d{2,4})\s*W",
+        ],
+    },
+}
+
+_CACHE_TTL_DAYS = 30
+
+
+class SpecLookupClient:
+    """Look up component specs against a remote retailer (Wootware etc.)."""
+
+    def __init__(
+        self,
+        config: SpecSourceConfig,
+        fetcher: Fetcher,
+        cache_dir: Path,
+    ) -> None:
+        self._config = config
+        self._fetcher = fetcher
+        self._cache_dir = cache_dir / config.name.lower().replace(" ", "-")
+        self._link_indexes: dict[str, dict[str, str]] = {}
+        self._last_fetch_at: float = 0.0
+
+    @property
+    def name(self) -> str:
+        return self._config.name
+
+    def lookup_cpu(self, model_text: str) -> dict[str, Any] | None:
+        return self._lookup("cpu", self._config.cpu_category_url, model_text)
+
+    def lookup_gpu(self, model_text: str) -> dict[str, Any] | None:
+        return self._lookup("gpu", self._config.gpu_category_url, model_text)
+
+    def _lookup(
+        self,
+        kind: str,
+        category_url: str | None,
+        model_text: str,
+    ) -> dict[str, Any] | None:
+        if not category_url or not model_text:
+            return None
+
+        cached = self._read_cache(kind, model_text)
+        if cached is not None:
+            return cached
+
+        index = self._link_indexes.get(kind)
+        if index is None:
+            index = self._build_link_index(category_url)
+            self._link_indexes[kind] = index
+
+        product_url = self._match_url(index, model_text)
+        if not product_url:
+            return None
+
+        product_html = self._polite_fetch(product_url)
+        if product_html is None:
+            return None
+
+        specs = self._parse_spec_sheet(parse_html_document(product_html), kind)
+        if not specs:
+            return None
+
+        specs["sourceUrl"] = product_url
+        self._write_cache(kind, model_text, specs)
+        return specs
+
+    def _build_link_index(self, category_url: str) -> dict[str, str]:
+        html = self._polite_fetch(category_url)
+        if html is None:
+            return {}
+        index: dict[str, str] = {}
+        for match in re.finditer(r'href="(https?://[^"]+\.html)"', html):
+            url = match.group(1)
+            tail = url.rsplit("/", 1)[-1]
+            slug = tail[:-5] if tail.endswith(".html") else tail
+            slug = slug.lower()
+            if slug not in index:
+                index[slug] = url
+        return index
+
+    def _match_url(self, index: dict[str, str], model_text: str) -> str | None:
+        # Normalise the model text into search tokens: drop brand prefix,
+        # split on whitespace, lowercase.
+        normalised = re.sub(
+            r"^(?:AMD|NVIDIA|Nvidia|Intel|GeForce|Radeon|Quadro)\s+",
+            "",
+            model_text,
+            flags=re.IGNORECASE,
+        ).strip().lower()
+        tokens = [t for t in re.split(r"\s+", normalised) if t]
+        if not tokens:
+            return None
+
+        candidates = [
+            url for slug, url in index.items()
+            if all(token in slug for token in tokens)
+        ]
+        if not candidates:
+            return None
+        # Prefer the shortest URL — usually the cleanest SKU page without
+        # comparison / review / suffixed variant pages.
+        return min(candidates, key=len)
+
+    def _parse_spec_sheet(
+        self,
+        document: HtmlDocument,
+        kind: str,
+    ) -> dict[str, Any]:
+        text = document.visible_text
+        result: dict[str, Any] = {}
+        for field, patterns in _SPEC_SHEET_PATTERNS[kind].items():
+            value = self._first_match(patterns, text)
+            if value is None:
+                continue
+            if field in {"cores", "threads", "tdp_watts", "vram_gb", "power_draw_watts"}:
+                result[field] = int(value)
+            elif field in {"base_clock_ghz", "boost_clock_ghz"}:
+                result[field] = float(value)
+            else:
+                result[field] = value
+        return result
+
+    @staticmethod
+    def _first_match(patterns: list[str], text: str) -> str | None:
+        for pattern in patterns:
+            match = re.search(pattern, text, flags=re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+        return None
+
+    def _polite_fetch(self, url: str) -> str | None:
+        # Honour the configured delay between fetches to this source.
+        elapsed = time.monotonic() - self._last_fetch_at
+        if elapsed < self._config.request_delay_seconds:
+            time.sleep(self._config.request_delay_seconds - elapsed)
+        try:
+            text = self._fetcher.fetch_text(url)
+        except (OSError, urllib.error.URLError, UnicodeDecodeError):
+            return None
+        finally:
+            self._last_fetch_at = time.monotonic()
+        return text
+
+    def _cache_path(self, kind: str, model_text: str) -> Path:
+        slug = re.sub(r"[^a-z0-9]+", "-", model_text.lower()).strip("-")
+        return self._cache_dir / kind / f"{slug or 'unknown'}.json"
+
+    def _read_cache(self, kind: str, model_text: str) -> dict[str, Any] | None:
+        path = self._cache_path(kind, model_text)
+        if not path.exists():
+            return None
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            cached_at_raw = str(data.get("cachedAt", ""))
+            cached_at = dt.datetime.fromisoformat(cached_at_raw.replace("Z", "+00:00"))
+            age = dt.datetime.now(UTC) - cached_at
+            if age.days > _CACHE_TTL_DAYS:
+                return None
+            specs = data.get("specs")
+            return specs if isinstance(specs, dict) else None
+        except (ValueError, KeyError):
+            return None
+
+    def _write_cache(self, kind: str, model_text: str, specs: dict[str, Any]) -> None:
+        path = self._cache_path(kind, model_text)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "cachedAt": now_iso(),
+            "source": self._config.name,
+            "model": model_text,
+            "specs": specs,
+        }
+        path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _split_brand_model(raw: str) -> tuple[str, str]:
+    """Return (brand, model) from a free-form CPU / GPU label.
+
+    Mirrors the catalog's brand-prefix-stripping so cache keys and
+    component_uuid inputs stay aligned across catalog hits and lookup-only
+    fallbacks.
+    """
+    explicit = re.match(
+        r"^(AMD|NVIDIA|Nvidia|Intel)\s+(.+)$",
+        raw.strip(),
+        flags=re.IGNORECASE,
+    )
+    if explicit:
+        brand = explicit.group(1).upper()
+        if brand == "NVIDIA":
+            brand = "NVIDIA"
+        elif brand.lower() == "nvidia":
+            brand = "NVIDIA"
+        return brand, explicit.group(2).strip()
+
+    lower = raw.lower()
+    if "ryzen" in lower or "threadripper" in lower:
+        return "AMD", raw.strip()
+    if "core" in lower or "pentium" in lower or "celeron" in lower or "xeon" in lower:
+        return "Intel", raw.strip()
+    if "rtx" in lower or "geforce" in lower or "quadro" in lower:
+        return "NVIDIA", raw.strip()
+    if "radeon" in lower:
+        return "AMD", raw.strip()
+    return "Unknown", raw.strip()
+
+
 # Body-text heuristics for parts that don't have a catalog (motherboard, PSU).
 # Returns None when nothing convincing is found — workshop fills it in.
 
@@ -377,12 +660,18 @@ def clean_text(value: str | None) -> str:
     return re.sub(r"\s+", " ", unescaped).strip()
 
 
-def load_config(path: Path) -> list[SourceConfig]:
+def load_config(path: Path) -> tuple[list[SourceConfig], list[SpecSourceConfig]]:
     data = json.loads(path.read_text(encoding="utf-8-sig"))
     sources = data.get("sources")
     if not isinstance(sources, list) or not sources:
         raise ValueError("Config must contain a non-empty 'sources' array.")
-    return [SourceConfig.from_dict(source) for source in sources]
+    spec_sources_raw = data.get("specSources") or []
+    if not isinstance(spec_sources_raw, list):
+        raise ValueError("'specSources' must be a list when present.")
+    return (
+        [SourceConfig.from_dict(source) for source in sources],
+        [SpecSourceConfig.from_dict(source) for source in spec_sources_raw],
+    )
 
 
 def parse_html_document(markup: str) -> HtmlDocument:
@@ -1065,6 +1354,7 @@ def build_inventory(
     catalog: Catalog,
     *,
     build_status: str,
+    spec_clients: list["SpecLookupClient"] | None = None,
 ) -> dict[str, Any]:
     """Project scraped products onto the pc_builds + cpus + gpus + motherboards
     + psus schema. Components are deduplicated by (brand, model) — one row
@@ -1087,8 +1377,8 @@ def build_inventory(
         specs = product.specs
         warnings = list(product.warnings)
 
-        cpu_id = _resolve_cpu(specs.get("cpu"), catalog, cpu_rows, warnings)
-        gpu_id = _resolve_gpu(specs.get("gpu"), catalog, gpu_rows, warnings)
+        cpu_id = _resolve_cpu(specs.get("cpu"), catalog, cpu_rows, warnings, spec_clients)
+        gpu_id = _resolve_gpu(specs.get("gpu"), catalog, gpu_rows, warnings, spec_clients)
         haystack = f"{product.name} {product.description or ''}"
         mobo_id = _resolve_motherboard(haystack, mobo_rows, warnings)
         psu_id = _resolve_psu(haystack, psu_rows, warnings)
@@ -1146,33 +1436,59 @@ def _resolve_cpu(
     catalog: Catalog,
     rows: dict[tuple[str, str], dict[str, Any]],
     warnings: list[str],
+    spec_clients: list["SpecLookupClient"] | None = None,
 ) -> uuid.UUID | None:
     if not raw or raw.startswith("Review "):
         warnings.append("CPU model not extracted from page.")
         return None
 
     entry = catalog.lookup_cpu(raw)
-    if entry is None:
-        warnings.append(
-            f"CPU '{raw}' not in catalog — add an entry to catalog/cpus.json."
-        )
-        return None
+    if entry is not None:
+        key = (entry.brand, entry.model)
+        cpu_id = component_uuid("cpu", entry.brand, entry.model)
+        if key not in rows:
+            rows[key] = {
+                "id": str(cpu_id),
+                "brand": entry.brand,
+                "model": entry.model,
+                "cores": entry.data.get("cores"),
+                "threads": entry.data.get("threads"),
+                "base_clock_ghz": entry.data.get("base_clock_ghz"),
+                "boost_clock_ghz": entry.data.get("boost_clock_ghz"),
+                "socket": entry.data.get("socket"),
+                "tdp_watts": entry.data.get("tdp_watts"),
+            }
+        return cpu_id
 
-    key = (entry.brand, entry.model)
-    cpu_id = component_uuid("cpu", entry.brand, entry.model)
-    if key not in rows:
-        rows[key] = {
-            "id": str(cpu_id),
-            "brand": entry.brand,
-            "model": entry.model,
-            "cores": entry.data.get("cores"),
-            "threads": entry.data.get("threads"),
-            "base_clock_ghz": entry.data.get("base_clock_ghz"),
-            "boost_clock_ghz": entry.data.get("boost_clock_ghz"),
-            "socket": entry.data.get("socket"),
-            "tdp_watts": entry.data.get("tdp_watts"),
-        }
-    return cpu_id
+    # Catalog miss — try the spec lookup sources.
+    for client in spec_clients or []:
+        looked_up = client.lookup_cpu(raw)
+        if not looked_up:
+            continue
+        brand, model = _split_brand_model(raw)
+        key = (brand, model)
+        cpu_id = component_uuid("cpu", brand, model)
+        if key not in rows:
+            rows[key] = {
+                "id": str(cpu_id),
+                "brand": brand,
+                "model": model,
+                "cores": looked_up.get("cores"),
+                "threads": looked_up.get("threads"),
+                "base_clock_ghz": looked_up.get("base_clock_ghz"),
+                "boost_clock_ghz": looked_up.get("boost_clock_ghz"),
+                "socket": looked_up.get("socket"),
+                "tdp_watts": looked_up.get("tdp_watts"),
+            }
+        warnings.append(
+            f"CPU '{raw}' filled from {client.name} (consider adding to catalog/cpus.json)."
+        )
+        return cpu_id
+
+    warnings.append(
+        f"CPU '{raw}' not in catalog or spec sources — add an entry to catalog/cpus.json."
+    )
+    return None
 
 
 def _resolve_gpu(
@@ -1180,30 +1496,53 @@ def _resolve_gpu(
     catalog: Catalog,
     rows: dict[tuple[str, str], dict[str, Any]],
     warnings: list[str],
+    spec_clients: list["SpecLookupClient"] | None = None,
 ) -> uuid.UUID | None:
     if not raw or raw.startswith("Review "):
         warnings.append("GPU model not extracted from page.")
         return None
 
     entry = catalog.lookup_gpu(raw)
-    if entry is None:
-        warnings.append(
-            f"GPU '{raw}' not in catalog — add an entry to catalog/gpus.json."
-        )
-        return None
+    if entry is not None:
+        key = (entry.brand, entry.model)
+        gpu_id = component_uuid("gpu", entry.brand, entry.model)
+        if key not in rows:
+            rows[key] = {
+                "id": str(gpu_id),
+                "brand": entry.brand,
+                "model": entry.model,
+                "vram_gb": entry.data.get("vram_gb"),
+                "memory_type": entry.data.get("memory_type"),
+                "power_draw_watts": entry.data.get("power_draw_watts"),
+            }
+        return gpu_id
 
-    key = (entry.brand, entry.model)
-    gpu_id = component_uuid("gpu", entry.brand, entry.model)
-    if key not in rows:
-        rows[key] = {
-            "id": str(gpu_id),
-            "brand": entry.brand,
-            "model": entry.model,
-            "vram_gb": entry.data.get("vram_gb"),
-            "memory_type": entry.data.get("memory_type"),
-            "power_draw_watts": entry.data.get("power_draw_watts"),
-        }
-    return gpu_id
+    # Catalog miss — try the spec lookup sources.
+    for client in spec_clients or []:
+        looked_up = client.lookup_gpu(raw)
+        if not looked_up:
+            continue
+        brand, model = _split_brand_model(raw)
+        key = (brand, model)
+        gpu_id = component_uuid("gpu", brand, model)
+        if key not in rows:
+            rows[key] = {
+                "id": str(gpu_id),
+                "brand": brand,
+                "model": model,
+                "vram_gb": looked_up.get("vram_gb"),
+                "memory_type": looked_up.get("memory_type"),
+                "power_draw_watts": looked_up.get("power_draw_watts"),
+            }
+        warnings.append(
+            f"GPU '{raw}' filled from {client.name} (consider adding to catalog/gpus.json)."
+        )
+        return gpu_id
+
+    warnings.append(
+        f"GPU '{raw}' not in catalog or spec sources — add an entry to catalog/gpus.json."
+    )
+    return None
 
 
 def _resolve_motherboard(
@@ -1606,6 +1945,17 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Directory containing cpus.json / gpus.json static catalogs.",
     )
     parser.add_argument(
+        "--spec-cache-dir",
+        type=Path,
+        default=Path("tools/pc-prebuild-scraper/catalog/.spec-cache"),
+        help="Where to cache spec-lookup responses (30-day TTL).",
+    )
+    parser.add_argument(
+        "--no-spec-fallback",
+        action="store_true",
+        help="Disable the catalog-miss spec lookup against specSources.",
+    )
+    parser.add_argument(
         "--status",
         choices=["live", "closing-soon", "sold-out", "upcoming"],
         default="upcoming",
@@ -1624,10 +1974,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
-    sources = load_config(args.config)
+    sources, spec_sources = load_config(args.config)
     catalog = Catalog.load(args.catalog_dir)
     fetcher = Fetcher(args.user_agent, args.timeout_seconds)
     robots = None if args.no_robots else RobotsCache(args.user_agent, args.timeout_seconds)
+
+    spec_clients: list[SpecLookupClient] = []
+    if not args.no_spec_fallback:
+        for spec_source in spec_sources:
+            spec_clients.append(SpecLookupClient(spec_source, fetcher, args.spec_cache_dir))
 
     products, stats = scrape_sources(
         sources,
@@ -1636,7 +1991,12 @@ def main(argv: list[str]) -> int:
         max_products=args.max_products,
     )
     competitions = build_competition_drafts(products, args.status)
-    inventory = build_inventory(products, catalog, build_status=args.status)
+    inventory = build_inventory(
+        products,
+        catalog,
+        build_status=args.status,
+        spec_clients=spec_clients,
+    )
 
     raw_output = {
         "generatedAt": now_iso(),
