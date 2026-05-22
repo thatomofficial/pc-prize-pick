@@ -30,3 +30,15 @@ script per concern. Name the script after the verb it performs:
 - `reset-db.ps1`
 - `seed-dev-data.ps1`
 - `deploy-staging.ps1`
+
+## PC prebuilt scraper
+
+`pc-prebuild-scraper/` contains a dependency-free Python scraper for retailer
+prebuilt desktop PC pages. It emits reviewable raw product JSON, frontend-shaped
+competition draft JSON, and an optional Postgres upsert script.
+
+```powershell
+.\tools\scripts\scrape-prebuilds.ps1 -Config tools\pc-prebuild-scraper\sources.local.json
+```
+
+See [`pc-prebuild-scraper/README.md`](pc-prebuild-scraper/README.md).

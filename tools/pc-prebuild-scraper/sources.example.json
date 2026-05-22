@@ -1,0 +1,45 @@
+{
+  "sources": [
+    {
+      "name": "Example PC retailer",
+      "baseUrl": "https://www.example-retailer.co.za",
+      "urls": [
+        "https://www.example-retailer.co.za/gaming-pcs"
+      ],
+      "sitemapUrl": null,
+      "currency": "ZAR",
+      "includeKeywords": [
+        "gaming pc",
+        "desktop pc",
+        "prebuilt",
+        "pre-built",
+        "workstation"
+      ],
+      "excludeKeywords": [
+        "laptop",
+        "monitor",
+        "keyboard",
+        "mouse",
+        "component"
+      ],
+      "productUrlPatterns": [
+        "/gaming-pc",
+        "/prebuilt",
+        "/desktop-pc",
+        "/product/"
+      ],
+      "maxPages": 80,
+      "maxDepth": 2,
+      "requestDelaySeconds": 1.5
+    }
+  ],
+  "specSources": [
+    {
+      "name": "Example component retailer",
+      "baseUrl": "https://www.example-component-retailer.co.za",
+      "cpuCategoryUrl": "https://www.example-component-retailer.co.za/computer-hardware/cpus",
+      "gpuCategoryUrl": "https://www.example-component-retailer.co.za/computer-hardware/graphics-cards",
+      "requestDelaySeconds": 10
+    }
+  ]
+}
