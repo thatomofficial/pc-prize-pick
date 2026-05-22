@@ -32,9 +32,10 @@ export class ApiClientService {
   private readonly http = inject(HttpClient);
 
   get<T>(path: string, options?: ApiRequestOptions): Observable<T> {
+    const correlationId = this.newCorrelationId();
     return this.http
-      .get<T>(this.buildUrl(path), this.buildOptions(options))
-      .pipe(catchError((error: unknown) => this.toApiError(error)));
+      .get<T>(this.buildUrl(path), this.buildOptions(options, correlationId))
+      .pipe(catchError((error: unknown) => this.toApiError(error, correlationId)));
   }
 
   post<TResponse, TBody = unknown>(
@@ -42,9 +43,10 @@ export class ApiClientService {
     body: TBody,
     options?: ApiRequestOptions,
   ): Observable<TResponse> {
+    const correlationId = this.newCorrelationId();
     return this.http
-      .post<TResponse>(this.buildUrl(path), body, this.buildOptions(options))
-      .pipe(catchError((error: unknown) => this.toApiError(error)));
+      .post<TResponse>(this.buildUrl(path), body, this.buildOptions(options, correlationId))
+      .pipe(catchError((error: unknown) => this.toApiError(error, correlationId)));
   }
 
   put<TResponse, TBody = unknown>(
@@ -52,15 +54,17 @@ export class ApiClientService {
     body: TBody,
     options?: ApiRequestOptions,
   ): Observable<TResponse> {
+    const correlationId = this.newCorrelationId();
     return this.http
-      .put<TResponse>(this.buildUrl(path), body, this.buildOptions(options))
-      .pipe(catchError((error: unknown) => this.toApiError(error)));
+      .put<TResponse>(this.buildUrl(path), body, this.buildOptions(options, correlationId))
+      .pipe(catchError((error: unknown) => this.toApiError(error, correlationId)));
   }
 
   delete<T>(path: string, options?: ApiRequestOptions): Observable<T> {
+    const correlationId = this.newCorrelationId();
     return this.http
-      .delete<T>(this.buildUrl(path), this.buildOptions(options))
-      .pipe(catchError((error: unknown) => this.toApiError(error)));
+      .delete<T>(this.buildUrl(path), this.buildOptions(options, correlationId))
+      .pipe(catchError((error: unknown) => this.toApiError(error, correlationId)));
   }
 
   /**
@@ -77,12 +81,15 @@ export class ApiClientService {
     return `${base}${suffix}`;
   }
 
-  private buildOptions(options?: ApiRequestOptions): {
+  private buildOptions(
+    options: ApiRequestOptions | undefined,
+    correlationId: string,
+  ): {
     headers: HttpHeaders;
     params?: HttpParams;
   } {
     let headers = new HttpHeaders({
-      [CORRELATION_HEADER]: this.newCorrelationId(),
+      [CORRELATION_HEADER]: correlationId,
     });
     if (options?.headers) {
       for (const [key, value] of Object.entries(options.headers)) {
@@ -121,16 +128,25 @@ export class ApiClientService {
   /**
    * Funnel every transport failure through one shape so component code can
    * branch on `code` instead of sniffing `HttpErrorResponse` internals.
+   *
+   * `correlationId` is the id we *sent* with the request. We prefer the id
+   * the server *echoed* (if any — `HttpErrorResponse.headers` are response
+   * headers), then fall back to the request-side id so the field is
+   * usable even when the backend doesn't bounce it back.
    */
-  private toApiError(error: unknown): Observable<never> {
+  private toApiError(error: unknown, requestCorrelationId: string): Observable<never> {
     if (!(error instanceof HttpErrorResponse)) {
       return throwError(() => ({
         status: 0,
         code: ApiErrorCode.Unknown,
         message: 'Unexpected error.',
+        correlationId: requestCorrelationId,
         rawMessage: error instanceof Error ? error.message : String(error),
       } satisfies ApiError));
     }
+
+    const correlationId =
+      error.headers?.get(CORRELATION_HEADER) ?? requestCorrelationId;
 
     // Network failures surface as status === 0 with the original error in
     // `error.error` (typically a ProgressEvent). Distinguish them so the UI
@@ -140,7 +156,7 @@ export class ApiClientService {
         status: 0,
         code: ApiErrorCode.Network,
         message: 'Network is unavailable. Check your connection and try again.',
-        correlationId: error.headers?.get(CORRELATION_HEADER) ?? undefined,
+        correlationId,
         rawMessage: error.message,
       } satisfies ApiError));
     }
@@ -166,7 +182,7 @@ export class ApiClientService {
       code,
       message,
       fields,
-      correlationId: error.headers?.get(CORRELATION_HEADER) ?? undefined,
+      correlationId,
       rawMessage: error.message,
     } satisfies ApiError));
   }

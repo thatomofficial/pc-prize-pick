@@ -10,6 +10,12 @@ export interface ApiError {
   code: string;
   message: string;
   fields?: Record<string, string[]>;
+  /**
+   * The `x-request-id` for the failed call. Prefers the value the server
+   * echoed on the response, falling back to the id the client sent on
+   * the request — so the field is reliably populated even when the
+   * backend doesn't bounce the header.
+   */
   correlationId?: string;
   /** Original network error message when no JSON body was available. */
   rawMessage?: string;

@@ -125,14 +125,52 @@ describe('ApiClientService', () => {
 
   it('wraps non-HttpErrorResponse throwables in ApiError', async () => {
     // Hit the catch-all branch by feeding the private mapper a stray Error.
-    const mapper = (service as unknown as {
-      toApiError(e: unknown): { subscribe: (cb: { error(e: ApiError): void }) => void };
-    }).toApiError(new Error('boom'));
+    const mapper = (
+      service as unknown as {
+        toApiError(
+          e: unknown,
+          id: string,
+        ): { subscribe: (cb: { error(e: ApiError): void }) => void };
+      }
+    ).toApiError(new Error('boom'), 'req-test-id');
     const err = await new Promise<ApiError>((resolve) =>
       mapper.subscribe({ error: (e) => resolve(e) }),
     );
     expect(err.status).toBe(0);
     expect(err.code).toBe(ApiErrorCode.Unknown);
     expect(err.rawMessage).toBe('boom');
+    expect(err.correlationId).toBe('req-test-id');
+  });
+
+  it('populates correlationId from the request-side x-request-id when server does not echo', async () => {
+    const promise = new Promise<ApiError>((resolve) => {
+      service.get('boom').subscribe({ error: (err: ApiError) => resolve(err) });
+    });
+    const req = http.expectOne(`${environment.apiEndpoint}/boom`);
+    const requestId = req.request.headers.get('x-request-id');
+    req.flush({ code: 'nope', message: 'nope' }, { status: 400, statusText: 'Bad Request' });
+    const err = await promise;
+    expect(requestId).toBeTruthy();
+    expect(err.correlationId).toBe(requestId);
+  });
+
+  it('prefers the server-echoed x-request-id when present', async () => {
+    const promise = new Promise<ApiError>((resolve) => {
+      service.get('boom').subscribe({ error: (err: ApiError) => resolve(err) });
+    });
+    const req = http.expectOne(`${environment.apiEndpoint}/boom`);
+    const requestId = req.request.headers.get('x-request-id');
+    req.flush(
+      { code: 'nope', message: 'nope' },
+      {
+        status: 400,
+        statusText: 'Bad Request',
+        headers: { 'x-request-id': 'server-issued-id' },
+      },
+    );
+    const err = await promise;
+    expect(requestId).toBeTruthy();
+    expect(err.correlationId).toBe('server-issued-id');
+    expect(err.correlationId).not.toBe(requestId);
   });
 });

@@ -1,4 +1,5 @@
 using PcPrizePick.Api.Endpoints;
+using PcPrizePick.Api.Middleware;
 using PcPrizePick.Application.Competitions;
 using PcPrizePick.Infrastructure;
 
@@ -18,7 +19,11 @@ builder.Services.AddCors(options =>
             ?? ["http://localhost:4200"];
         policy.WithOrigins(origins)
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            // Browsers hide non-safelist response headers from JS by
+            // default. Exposing x-request-id lets the Frontend pick up
+            // the id the server stamped (or echoed) on every response.
+            .WithExposedHeaders(CorrelationIdMiddleware.HeaderName);
     });
 });
 
@@ -28,6 +33,12 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+// Correlation id flows BEFORE CORS so the preflight response carries it
+// too. Sits at the very front of the pipeline so every downstream piece
+// (logging, endpoints, error handlers) can pull the id out of
+// HttpContext.Items.
+app.UseCorrelationId();
 
 app.UseCors(FrontendCors);
 
