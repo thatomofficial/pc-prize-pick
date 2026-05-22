@@ -3,10 +3,14 @@ export interface User {
   email: string;
   displayName: string;
   cellPhone: string;
-  /** ISO 8601 timestamp the user ticked the Terms of Use box. */
-  acceptedTermsAt: string;
-  /** ISO 8601 timestamp the user ticked the Privacy Policy box. */
-  acceptedPrivacyAt: string;
+  /** ISO 8601 timestamp the user ticked the Terms of Use box.
+   *  `null` for legacy accounts that predate consent collection — they
+   *  should be prompted to re-accept before doing anything that requires
+   *  consent on file. */
+  acceptedTermsAt: string | null;
+  /** ISO 8601 timestamp the user ticked the Privacy Policy box.
+   *  `null` for legacy accounts (see {@link acceptedTermsAt}). */
+  acceptedPrivacyAt: string | null;
 }
 
 /**

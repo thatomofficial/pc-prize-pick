@@ -72,7 +72,24 @@ describe('AuthService session restore', () => {
     expect(auth.isAuthed()).toBe(true);
   });
 
-  it('purges legacy entries missing required fields (no cellPhone / no consent)', () => {
+  it('restores a legacy entry with null consent timestamps (legacy account)', () => {
+    const legacyButValid = {
+      ...validStoredUser,
+      acceptedTermsAt: null,
+      acceptedPrivacyAt: null,
+    };
+    localStorage.setItem(USER_KEY, JSON.stringify(legacyButValid));
+    localStorage.setItem(ACCESS_KEY, 'live-access');
+
+    TestBed.configureTestingModule({});
+    const auth = TestBed.inject(AuthService);
+
+    expect(auth.currentUser()).toEqual(legacyButValid);
+    expect(auth.isAuthed()).toBe(true);
+    expect(auth.accessToken()).toBe('live-access');
+  });
+
+  it('purges legacy entries missing required fields (no cellPhone)', () => {
     const legacy = {
       id: 'mock-legacy',
       email: 'old@example.com',

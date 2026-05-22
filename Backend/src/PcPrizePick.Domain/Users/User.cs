@@ -22,15 +22,17 @@ public class User
     public DateTimeOffset? LastSignInAt { get; set; }
 
     /// <summary>When the user ticked the Terms of Use box during sign-up.
-    /// Required by POPIA / CPA — we store the timestamp (not just a bool)
-    /// so a future ToU revision can detect who's on the old version and
-    /// prompt them to re-accept.</summary>
-    public required DateTimeOffset AcceptedTermsAt { get; set; }
+    /// Nullable on the DB so existing accounts that predate consent
+    /// collection are visibly *unset* — a sentinel timestamp would falsely
+    /// claim consent was recorded. <see cref="Create"/> always stamps a
+    /// real value for new registrations.</summary>
+    public DateTimeOffset? AcceptedTermsAt { get; set; }
 
     /// <summary>When the user ticked the Privacy Policy box during sign-up.
     /// Stored separately from <see cref="AcceptedTermsAt"/> because the two
-    /// documents can revise independently.</summary>
-    public required DateTimeOffset AcceptedPrivacyAt { get; set; }
+    /// documents can revise independently. Nullable for the same reason
+    /// (visible "consent not on file" for legacy accounts).</summary>
+    public DateTimeOffset? AcceptedPrivacyAt { get; set; }
 
     public User()
     {

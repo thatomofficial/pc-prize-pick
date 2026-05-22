@@ -241,6 +241,9 @@ const deriveDisplayNameFromEmail = (email: string): string => {
  * collects it), but we still require it to *exist* as a string so newer
  * code can rely on `user.cellPhone` not being `undefined`.
  */
+const isOptionalIsoString = (value: unknown): value is string | null =>
+  value === null || (typeof value === 'string' && value.length > 0);
+
 const isValidStoredUser = (value: unknown): value is User => {
   if (typeof value !== 'object' || value === null) return false;
   const candidate = value as Record<string, unknown>;
@@ -251,10 +254,9 @@ const isValidStoredUser = (value: unknown): value is User => {
     candidate['email'].length > 0 &&
     typeof candidate['displayName'] === 'string' &&
     typeof candidate['cellPhone'] === 'string' &&
-    typeof candidate['acceptedTermsAt'] === 'string' &&
-    candidate['acceptedTermsAt'].length > 0 &&
-    typeof candidate['acceptedPrivacyAt'] === 'string' &&
-    candidate['acceptedPrivacyAt'].length > 0
+    // Legacy accounts may carry `null` here; only reject wrong types.
+    isOptionalIsoString(candidate['acceptedTermsAt']) &&
+    isOptionalIsoString(candidate['acceptedPrivacyAt'])
   );
 };
 
