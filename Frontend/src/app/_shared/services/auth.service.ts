@@ -161,14 +161,36 @@ export class AuthService {
     this.persist(REFRESH_TOKEN_STORAGE_KEY, refresh);
   }
 
+  /**
+   * Parse the persisted user blob and validate every required field is
+   * present + the right type before handing it back. Old localStorage
+   * entries from prior schemas (no cellPhone, no consent timestamps) would
+   * otherwise deserialise into half-populated `User` objects, making
+   * `isAuthed()` true while downstream code reads `undefined`. When we
+   * detect a stale shape we purge the whole session — user + both tokens —
+   * so the next sign-in starts from a clean state.
+   */
   private loadUserFromStorage(): User | null {
     const raw = this.loadStored(USER_STORAGE_KEY);
     if (!raw) return null;
+    let parsed: unknown;
     try {
-      return JSON.parse(raw) as User;
+      parsed = JSON.parse(raw);
     } catch {
+      this.clearStaleSession();
       return null;
     }
+    if (!isValidStoredUser(parsed)) {
+      this.clearStaleSession();
+      return null;
+    }
+    return parsed;
+  }
+
+  private clearStaleSession(): void {
+    this.clearStorage(USER_STORAGE_KEY);
+    this.clearStorage(ACCESS_TOKEN_STORAGE_KEY);
+    this.clearStorage(REFRESH_TOKEN_STORAGE_KEY);
   }
 
   private loadStored(key: string): string | null {
@@ -207,6 +229,33 @@ const deriveDisplayNameFromEmail = (email: string): string => {
     .filter((p) => p.length > 0)
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(' ');
+};
+
+/**
+ * Runtime shape guard for what we pulled out of localStorage. Required
+ * fields must be present and the right primitive — anything else is
+ * treated as a stale blob from an older build and discarded.
+ *
+ * `cellPhone` is allowed to be an empty string because the existing
+ * sign-in flow stamps it that way (registration is the only place that
+ * collects it), but we still require it to *exist* as a string so newer
+ * code can rely on `user.cellPhone` not being `undefined`.
+ */
+const isValidStoredUser = (value: unknown): value is User => {
+  if (typeof value !== 'object' || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate['id'] === 'string' &&
+    candidate['id'].length > 0 &&
+    typeof candidate['email'] === 'string' &&
+    candidate['email'].length > 0 &&
+    typeof candidate['displayName'] === 'string' &&
+    typeof candidate['cellPhone'] === 'string' &&
+    typeof candidate['acceptedTermsAt'] === 'string' &&
+    candidate['acceptedTermsAt'].length > 0 &&
+    typeof candidate['acceptedPrivacyAt'] === 'string' &&
+    candidate['acceptedPrivacyAt'].length > 0
+  );
 };
 
 // Mock JWT shaped like header.payload.signature so the interceptor and
