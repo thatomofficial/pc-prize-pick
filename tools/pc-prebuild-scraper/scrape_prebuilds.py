@@ -1468,6 +1468,12 @@ def build_inventory(
     psu_rows: dict[tuple[str, str], dict[str, Any]] = {}
     pc_build_rows: list[dict[str, Any]] = []
 
+    # SKUs we resolved via SpecLookupClient (not the catalog). Surfaced so
+    # the caller can append them to catalog/cpus.json / catalog/gpus.json
+    # via the --learn-catalog flag.
+    learned_cpus: dict[tuple[str, str], dict[str, Any]] = {}
+    learned_gpus: dict[tuple[str, str], dict[str, Any]] = {}
+
     schema_status = _to_pc_build_status(build_status)
 
     for product in sorted(products, key=lambda item: item.price_cents, reverse=True):
@@ -1477,10 +1483,12 @@ def build_inventory(
         cpu_id = _resolve_cpu(
             specs.get("cpu"), catalog, cpu_rows, warnings, spec_clients,
             build_url=product.source_url,
+            learned=learned_cpus,
         )
         gpu_id = _resolve_gpu(
             specs.get("gpu"), catalog, gpu_rows, warnings, spec_clients,
             build_url=product.source_url,
+            learned=learned_gpus,
         )
         haystack = f"{product.name} {product.description or ''}"
         mobo_id = _resolve_motherboard(haystack, mobo_rows, warnings)
@@ -1518,7 +1526,72 @@ def build_inventory(
         "motherboards": list(mobo_rows.values()),
         "psus": list(psu_rows.values()),
         "pc_builds": pc_build_rows,
+        "learned_cpus": list(learned_cpus.values()),
+        "learned_gpus": list(learned_gpus.values()),
     }
+
+
+def learn_catalog(
+    catalog_dir: Path,
+    learned_cpus: list[dict[str, Any]],
+    learned_gpus: list[dict[str, Any]],
+) -> tuple[int, int]:
+    """Append SKUs resolved via spec-lookup fallback into the static catalog
+    JSON files so the next run hits the catalog directly instead of paying
+    the Wootware round-trip.
+
+    Returns ``(cpus_added, gpus_added)``. Entries whose ``(brand, model)``
+    already exist in the catalog are skipped, but any new ``aliases`` from
+    this run are merged in.
+    """
+    cpus_added = _learn_one(
+        catalog_dir / "cpus.json",
+        learned_cpus,
+        root_key="cpus",
+    )
+    gpus_added = _learn_one(
+        catalog_dir / "gpus.json",
+        learned_gpus,
+        root_key="gpus",
+    )
+    return cpus_added, gpus_added
+
+
+def _learn_one(path: Path, learned: list[dict[str, Any]], *, root_key: str) -> int:
+    if not learned:
+        return 0
+    if not path.exists():
+        return 0
+
+    with path.open("r", encoding="utf-8") as fp:
+        document = json.load(fp)
+    entries = document.get(root_key, [])
+    index = {(entry["brand"], entry["model"]): entry for entry in entries}
+
+    added = 0
+    for incoming in learned:
+        key = (incoming["brand"], incoming["model"])
+        new_aliases = [a for a in incoming.get("aliases", []) if a]
+        # Drop the internal _source marker before writing.
+        payload = {k: v for k, v in incoming.items() if k != "_source"}
+        if key in index:
+            existing = index[key]
+            existing_aliases = list(existing.get("aliases", []))
+            for alias in new_aliases:
+                if alias not in existing_aliases:
+                    existing_aliases.append(alias)
+            if existing_aliases != existing.get("aliases"):
+                existing["aliases"] = existing_aliases
+            continue
+        entries.append(payload)
+        index[key] = payload
+        added += 1
+
+    document[root_key] = entries
+    with path.open("w", encoding="utf-8") as fp:
+        json.dump(document, fp, indent=2, ensure_ascii=False)
+        fp.write("\n")
+    return added
 
 
 def _to_pc_build_status(value: str) -> str:
@@ -1542,6 +1615,7 @@ def _resolve_cpu(
     spec_clients: list["SpecLookupClient"] | None = None,
     *,
     build_url: str | None = None,
+    learned: dict[tuple[str, str], dict[str, Any]] | None = None,
 ) -> uuid.UUID | None:
     if not raw or raw.startswith("Review "):
         warnings.append("CPU model not extracted from page.")
@@ -1620,6 +1694,24 @@ def _resolve_cpu(
         warnings.append(
             f"CPU '{raw}' filled from {client.name} (consider adding to catalog/cpus.json)."
         )
+        if learned is not None:
+            entry = learned.setdefault(
+                (brand, model),
+                {
+                    "brand": brand,
+                    "model": model,
+                    "aliases": [],
+                    "cores": looked_up.get("cores"),
+                    "threads": looked_up.get("threads"),
+                    "base_clock_ghz": looked_up.get("base_clock_ghz"),
+                    "boost_clock_ghz": looked_up.get("boost_clock_ghz"),
+                    "socket": looked_up.get("socket"),
+                    "tdp_watts": looked_up.get("tdp_watts"),
+                    "_source": client.name,
+                },
+            )
+            if raw and raw != f"{brand} {model}" and raw not in entry["aliases"]:
+                entry["aliases"].append(raw)
         return cpu_id
 
     msg = f"CPU '{raw}' not in catalog or spec sources — add an entry to catalog/cpus.json."
@@ -1637,6 +1729,7 @@ def _resolve_gpu(
     spec_clients: list["SpecLookupClient"] | None = None,
     *,
     build_url: str | None = None,
+    learned: dict[tuple[str, str], dict[str, Any]] | None = None,
 ) -> uuid.UUID | None:
     if not raw or raw.startswith("Review "):
         warnings.append("GPU model not extracted from page.")
@@ -1708,6 +1801,21 @@ def _resolve_gpu(
         warnings.append(
             f"GPU '{raw}' filled from {client.name} (consider adding to catalog/gpus.json)."
         )
+        if learned is not None:
+            entry = learned.setdefault(
+                (brand, model),
+                {
+                    "brand": brand,
+                    "model": model,
+                    "aliases": [],
+                    "vram_gb": looked_up.get("vram_gb"),
+                    "memory_type": looked_up.get("memory_type"),
+                    "power_draw_watts": looked_up.get("power_draw_watts"),
+                    "_source": client.name,
+                },
+            )
+            if raw and raw != f"{brand} {model}" and raw not in entry["aliases"]:
+                entry["aliases"].append(raw)
         return gpu_id
 
     msg = f"GPU '{raw}' not in catalog or spec sources — add an entry to catalog/gpus.json."
@@ -2148,6 +2256,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Stream per-URL fetches, catalog hits/misses, and spec lookups to stdout.",
     )
     parser.add_argument(
+        "--learn-catalog",
+        action="store_true",
+        help=(
+            "Append SKUs resolved via the spec-lookup fallback into "
+            "catalog/cpus.json and catalog/gpus.json so the next run "
+            "skips the Wootware round-trip."
+        ),
+    )
+    parser.add_argument(
         "--dashboard",
         action="store_true",
         help="Open a live web dashboard streaming progress via Server-Sent Events.",
@@ -2231,6 +2348,36 @@ def main(argv: list[str]) -> int:
         motherboards=len(inventory["motherboards"]),
         psus=len(inventory["psus"]),
     )
+
+    learned_cpus = inventory.get("learned_cpus", [])
+    learned_gpus = inventory.get("learned_gpus", [])
+    if args.learn_catalog and (learned_cpus or learned_gpus):
+        cpus_added, gpus_added = learn_catalog(
+            args.catalog_dir, learned_cpus, learned_gpus
+        )
+        vlog(
+            "learn",
+            f"appended {cpus_added} CPU(s) and {gpus_added} GPU(s) to catalog",
+        )
+        emit(
+            "learn",
+            cpus_added=cpus_added,
+            gpus_added=gpus_added,
+            catalog_dir=str(args.catalog_dir),
+        )
+        if cpus_added or gpus_added:
+            print(
+                f"Learn-catalog: appended {cpus_added} CPU(s) and "
+                f"{gpus_added} GPU(s) to {args.catalog_dir}.",
+                flush=True,
+            )
+    elif learned_cpus or learned_gpus:
+        print(
+            f"Learn-catalog skipped: {len(learned_cpus)} CPU(s) and "
+            f"{len(learned_gpus)} GPU(s) were resolved via spec lookup. "
+            "Re-run with --learn-catalog to persist them.",
+            flush=True,
+        )
 
     raw_output = {
         "generatedAt": now_iso(),

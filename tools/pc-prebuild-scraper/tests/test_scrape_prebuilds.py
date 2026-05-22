@@ -18,6 +18,7 @@ from scrape_prebuilds import (  # noqa: E402
     build_inventory,
     component_uuid,
     extract_product,
+    learn_catalog,
     next_wave_close_at,
     parse_html_document,
     scrape_sources,
@@ -256,6 +257,105 @@ class ScrapePrebuildsTests(unittest.TestCase):
         self.assertEqual(resolved.model, "RTX 5000 Ada")
         self.assertEqual(resolved.data["vram_gb"], 32)
         self.assertEqual(resolved.data["memory_type"], "GDDR6")
+
+
+    def test_learn_catalog_appends_new_skus_and_merges_aliases(self) -> None:
+        """Catalog files start with one CPU and one GPU. After a run that
+        learns one new SKU per kind, the JSONs must contain the new
+        entries plus aliases. A second run with the same learned input
+        must be a no-op (idempotent — no duplicates)."""
+        import json as _json
+
+        with tempfile.TemporaryDirectory() as raw_dir:
+            catalog_dir = Path(raw_dir)
+            (catalog_dir / "cpus.json").write_text(
+                _json.dumps({
+                    "$schema": "test",
+                    "cpus": [
+                        {
+                            "brand": "AMD",
+                            "model": "Ryzen 5 7600",
+                            "aliases": ["AMD Ryzen 5 7600"],
+                            "cores": 6,
+                            "threads": 12,
+                            "base_clock_ghz": 3.8,
+                            "boost_clock_ghz": 5.1,
+                            "socket": "AM5",
+                            "tdp_watts": 65,
+                        }
+                    ],
+                }),
+                encoding="utf-8",
+            )
+            (catalog_dir / "gpus.json").write_text(
+                _json.dumps({
+                    "$schema": "test",
+                    "gpus": [
+                        {
+                            "brand": "NVIDIA",
+                            "model": "RTX 4060",
+                            "aliases": [],
+                            "vram_gb": 8,
+                            "memory_type": "GDDR6",
+                            "power_draw_watts": 115,
+                        }
+                    ],
+                }),
+                encoding="utf-8",
+            )
+
+            learned_cpus = [{
+                "brand": "AMD",
+                "model": "Ryzen 5 5500",
+                "aliases": ["AMD Ryzen 5 5500"],
+                "cores": 6,
+                "threads": 12,
+                "base_clock_ghz": 3.6,
+                "boost_clock_ghz": 4.2,
+                "socket": "AM4",
+                "tdp_watts": 65,
+                "_source": "Wootware",
+            }]
+            learned_gpus = [{
+                "brand": "NVIDIA",
+                "model": "RTX 5060",
+                "aliases": ["GeForce RTX 5060"],
+                "vram_gb": 8,
+                "memory_type": "GDDR7",
+                "power_draw_watts": 145,
+                "_source": "Wootware",
+            }]
+
+            cpus_added, gpus_added = learn_catalog(
+                catalog_dir, learned_cpus, learned_gpus
+            )
+            self.assertEqual((cpus_added, gpus_added), (1, 1))
+
+            cpus_doc = _json.loads((catalog_dir / "cpus.json").read_text())
+            self.assertEqual(len(cpus_doc["cpus"]), 2)
+            new_cpu = next(c for c in cpus_doc["cpus"] if c["model"] == "Ryzen 5 5500")
+            self.assertEqual(new_cpu["cores"], 6)
+            self.assertEqual(new_cpu["socket"], "AM4")
+            self.assertNotIn("_source", new_cpu)
+
+            gpus_doc = _json.loads((catalog_dir / "gpus.json").read_text())
+            self.assertEqual(len(gpus_doc["gpus"]), 2)
+            new_gpu = next(g for g in gpus_doc["gpus"] if g["model"] == "RTX 5060")
+            self.assertEqual(new_gpu["vram_gb"], 8)
+            self.assertEqual(new_gpu["aliases"], ["GeForce RTX 5060"])
+
+            # Second run with the same input is a no-op for the new SKUs,
+            # but should still merge a fresh alias into the existing CPU.
+            learned_cpus[0]["aliases"] = ["AMD Ryzen 5 5500", "Ryzen5 5500"]
+            cpus_added2, gpus_added2 = learn_catalog(
+                catalog_dir, learned_cpus, learned_gpus
+            )
+            self.assertEqual((cpus_added2, gpus_added2), (0, 0))
+
+            cpus_doc2 = _json.loads((catalog_dir / "cpus.json").read_text())
+            self.assertEqual(len(cpus_doc2["cpus"]), 2)
+            merged = next(c for c in cpus_doc2["cpus"] if c["model"] == "Ryzen 5 5500")
+            self.assertIn("Ryzen5 5500", merged["aliases"])
 
 
 def sample_source() -> SourceConfig:
