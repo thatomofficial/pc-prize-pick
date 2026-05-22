@@ -68,7 +68,7 @@ alone; they all unblock something downstream.
   - Reads base URL from `environment.apiEndpoint`.
   - Adds correlation id header (`x-request-id`) per request.
   - Unit tests covering URL composition, header injection, and error mapping.
-- `[ ]` **F1.2 — `authInterceptor` for bearer tokens.** MVP.
+- `[x]` **F1.2 — `authInterceptor` for bearer tokens.** MVP.
   - Attaches `Authorization: Bearer <jwt>` when a token is present in
     `AuthService`.
   - Skips public endpoints (login, register, password reset).
