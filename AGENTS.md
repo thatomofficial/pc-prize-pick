@@ -11,9 +11,11 @@ handpicked PC or take the cash equivalent. The format is modelled on
 [Dream Drive](https://dreamdrive.co.za/), which runs the same mechanic for
 cars in the South African market.
 
-The skill mechanic — described as **Spot-the-Pixel** in current copy — is what
-keeps the product on the competition side of SA gambling law. Entries cap per
-draw, and every draw is auditable.
+The skill mechanic is **Spot-the-Ball**, ported verbatim from Dream Drive —
+the player clicks where they think a digitally-removed ball was in the
+challenge image. Closest pixel wins, entry timestamp breaks ties. This is
+what keeps the product on the competition side of SA gambling law. Entries
+cap per draw, and every draw is auditable against the stored original image.
 
 **Cadence:** competitions run on fully synchronized 4-week (28-day) waves.
 Every wave closes Sunday 23:59:59.999 SAST. One wave clock per page, not per

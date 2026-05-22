@@ -38,7 +38,7 @@ export class SocialProofComponent {
     },
     {
       quote:
-        'The Spot-the-Pixel thing is harder than it looks. Lost the first three. Got smarter, won the fourth. Real skill, real prize.',
+        'The Spot-the-Ball thing is harder than it looks. Lost the first three. Got smarter, won the fourth. Real skill, real prize.',
       name: 'A. Mthembu',
       rig: 'Starter Rig',
       city: 'Pretoria',

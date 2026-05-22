@@ -1,0 +1,56 @@
+<figure
+  class="picker"
+  [class.picker--locked]="locked()"
+  (click)="onSurfaceClick($event)"
+  (keydown)="onKey($event)"
+  tabindex="0"
+  role="application"
+  [attr.aria-label]="locked() ? 'Pick locked' : 'Click or use arrow keys to place the ball'"
+>
+  <img
+    class="picker__image"
+    [src]="imageUrl()"
+    [alt]="imageAlt()"
+    (load)="onImageLoad($event)"
+    draggable="false"
+  />
+
+  @if (placed()) {
+    <span
+      class="picker__crosshair"
+      [style.left.%]="placed()!.xPct"
+      [style.top.%]="placed()!.yPct"
+      aria-hidden="true"
+    >
+      <span class="picker__crosshair-ring"></span>
+      <span class="picker__crosshair-x"></span>
+      <span class="picker__crosshair-y"></span>
+      <span class="picker__crosshair-coord t-mono"> {{ placed()!.x }} , {{ placed()!.y }} </span>
+    </span>
+  } @else {
+    <span class="picker__hint t-overline">
+      Click the image &mdash; or use arrow keys after first click &mdash; to place the ball.
+    </span>
+  }
+</figure>
+
+<div class="picker__actions">
+  <span class="picker__status t-overline">
+    @if (locked()) {
+      <span>Locked &middot; submission sent</span>
+    } @else if (placed()) {
+      <span>Hold ⇧ + arrow keys for ±10 px nudge</span>
+    } @else {
+      <span>No coordinate yet</span>
+    }
+  </span>
+  <button
+    type="button"
+    class="picker__submit"
+    [disabled]="!placed() || locked()"
+    (click)="onSubmit()"
+  >
+    <span>Lock in</span>
+    <span class="picker__submit-arrow" aria-hidden="true">→</span>
+  </button>
+</div>
