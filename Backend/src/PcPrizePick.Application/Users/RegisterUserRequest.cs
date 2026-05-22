@@ -20,9 +20,7 @@ public sealed record RegisterUserRequest
     public required string DisplayName { get; init; }
 
     [Required(ErrorMessage = "Cell phone is required.")]
-    [RegularExpression(
-        @"^(?:\+27|0)[6-8]\d{8}$",
-        ErrorMessage = "Enter a valid SA mobile number (0XX… or +27XX…).")]
+    [SaCellPhone]
     public required string CellPhone { get; init; }
 
     [Required(ErrorMessage = "Password is required.")]

@@ -36,6 +36,10 @@ public class RegisterUserRequestTests
     [InlineData("0821234567")]
     [InlineData("+27721234567")]
     [InlineData("+27621234567")]
+    [InlineData("082 123 4567")]    // spaces — common SA copy-paste format
+    [InlineData("082-123-4567")]    // dashes
+    [InlineData("(082) 123 4567")]  // parens + spaces
+    [InlineData("  +27 82 123 4567  ")]
     public void AcceptsBothLocalAndInternationalSaMobile(string phone)
     {
         var request = WellFormed() with { CellPhone = phone };
