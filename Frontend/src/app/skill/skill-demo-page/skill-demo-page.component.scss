@@ -1,0 +1,166 @@
+:host {
+  display: block;
+  background: var(--ink-900);
+  color: var(--cream-100);
+  min-height: 100vh;
+}
+
+.demo {
+  padding-block: clamp(2rem, 4vw, 4rem) clamp(4rem, 8vw, 7rem);
+
+  &__inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-10);
+  }
+
+  &__masthead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+    padding-bottom: var(--s-5);
+    border-bottom: var(--hairline);
+  }
+
+  &__back {
+    color: var(--cream-300);
+    transition: color var(--dur-fast);
+
+    &:hover {
+      color: var(--volt);
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--s-12);
+
+    @media (min-width: 1080px) {
+      grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+      gap: var(--s-16);
+      align-items: start;
+    }
+  }
+
+  &__primary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-6);
+  }
+
+  &__heading {
+    font-family: var(--font-display);
+    font-size: var(--type-display-lg);
+    line-height: 0.95;
+    letter-spacing: var(--tracking-tight);
+    color: var(--cream-100);
+
+    &-em {
+      font-style: italic;
+      color: var(--volt);
+    }
+  }
+
+  &__lede {
+    font-size: clamp(1rem, 1.2vw, 1.15rem);
+    line-height: 1.55;
+    color: var(--cream-300);
+    max-width: 56ch;
+  }
+
+  &__sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-4);
+    position: sticky;
+    top: var(--s-12);
+    align-self: start;
+  }
+
+  &__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    padding: var(--s-6);
+    background: var(--ink-800);
+    border: var(--hairline);
+
+    &--receipt {
+      background: linear-gradient(180deg, rgba(216, 255, 58, 0.06) 0%, var(--ink-800) 100%);
+      border-color: rgba(216, 255, 58, 0.4);
+    }
+
+    &--ghost {
+      background: transparent;
+      border-style: dashed;
+    }
+  }
+
+  &__panel-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 1.8vw, 1.75rem);
+    line-height: 1.05;
+    color: var(--cream-100);
+  }
+
+  &__panel-meta {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--cream-400);
+    letter-spacing: 0.02em;
+  }
+
+  &__panel-help {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--cream-300);
+
+    strong {
+      color: var(--cream-100);
+    }
+  }
+
+  &__countdown {
+    font-size: clamp(1.5rem, 2.4vw, 2.25rem);
+  }
+
+  &__receipt {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--s-2);
+
+    & > div {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--s-3);
+      padding-block: var(--s-2);
+      border-bottom: var(--hairline);
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+
+    dt {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--cream-400);
+      align-self: center;
+    }
+
+    dd {
+      font-size: 0.95rem;
+      color: var(--cream-100);
+      text-align: right;
+    }
+  }
+
+  &__receipt-note {
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: var(--cream-400);
+  }
+}

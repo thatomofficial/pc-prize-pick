@@ -45,7 +45,7 @@ take the skill shot, and learn whether they won:
 2. View the competition detail and see specs, entries, countdown.
 3. Sign up / sign in.
 4. Pick entry count, see ZAR total, accept the discount tier, pay.
-5. After payment, take the Spot-the-Pixel skill shot.
+5. After payment, take the Spot-the-Ball skill shot.
 6. Receive an email confirming entry + skill submission.
 7. After the draw closes, receive an email with the result.
 8. See entries and outcomes on the account dashboard.
@@ -241,27 +241,55 @@ alone; they all unblock something downstream.
   - Twitter / WhatsApp / copy-link with prefilled copy that includes the
     countdown.
 
-### E4 · Skill mechanic — Spot-the-Pixel
+### E4 · Skill mechanic — Spot-the-Ball
 
-The core legal differentiator. The implementation must be defensible.
+Spot-the-Ball with a twist. Each wave's challenge is a single still photo
+— typically the prize PC staged with a tennis-ball / ping-pong-ball
+placed somewhere in frame — with the ball digitally removed before
+publication. The player clicks where they think the ball was.
+
+**Win rule** (deliberate divergence from Dream Drive — see
+`memory/project_skill_mechanic.md`):
+
+1. **Exact-pixel hit wins.** Every submission whose `(x, y)` exactly
+   matches the stored target `(bx, by)` is a winner — 0, 1, or many.
+   No tie-breaking among exact hits.
+2. **Closest-pixel fallback** when nobody is exact. The single submission
+   closest by Euclidean distance wins; ties broken by server-received
+   timestamp.
+
+**Supply model.** Prize PCs are pre-builts procured from the entry-money
+pool. Workshop buys **one unit per winner** after the wave closes.
+Margin discipline depends on keeping exact-pixel winners rare — image
+selection + ball placement matter.
 
 - `[ ]` **E4.1 — `SkillChallengeService` API contract.** MVP.
   - `GET /api/competitions/:slug/challenge` returns `{ imageUrl,
-    challengeId, expiresAt }`.
-  - `POST /api/skill-submissions` accepts `{ challengeId, x, y,
-    submittedAt }` and returns receipt id.
+challengeId, expiresAt, imageWidth, imageHeight }`.
+  - `POST /api/skill-submissions` accepts `{ challengeId, x, y, submittedAt }`
+    and returns a receipt id. `x` / `y` are integer pixel coordinates in
+    the natural image space (not the rendered viewport).
   - `expiresAt` is bound by the competition's wave close, which itself sits
     on the 28-day cycle — challenges cannot be submitted after wave close.
 - `[ ]` **E4.2 — Skill UI.** MVP.
-  - Full-bleed image. User taps / clicks to place a crosshair.
-  - Pinch-zoom support on touch; arrow-key nudge on keyboard.
-  - Submit confirms the coordinate; cannot be changed after submit.
+  - Full-bleed challenge image with a click / tap target that places a
+    crosshair at the cursor.
+  - Pinch-zoom support on touch; arrow-key nudge on keyboard for fine
+    placement.
+  - Submit confirms the coordinate; the choice cannot be changed once
+    submitted.
 - `[ ]` **E4.3 — Practice mode.**
-  - Reduced-stakes practice round, no entry burned. Used to teach the
-    mechanic.
-- `[ ]` **E4.4 — Audit log.**
-  - Every submission writes an immutable record with client-side timestamp
-    and server-side received-at for tie-breaking.
+  - Reduced-stakes practice round against a sample image, no entry
+    burned. Used to teach the mechanic to first-time entrants.
+- `[ ]` **E4.4 — Audit log + winner selection.**
+  - Every submission writes an immutable record with the client
+    timestamp and the server-received timestamp.
+  - The original (un-edited) image and target `(bx, by)` are stored
+    alongside the challenge so any draw can be re-verified.
+  - Winner-selection job implements the two-stage rule above, emits one
+    audit event per winner, and persists both stages' inputs + outputs
+    (exact-hit count + fallback distances) even when zero or many
+    winners result.
 
 ### E5 · Entry purchase & checkout
 
@@ -286,13 +314,25 @@ The core legal differentiator. The implementation must be defensible.
 
 ### E6 · Account & profile
 
-- `[ ]` **E6.1 — Sign up.** MVP.
-  - Email + password, with email verification.
-  - Social login parity (see F2.4).
-- `[ ]` **E6.2 — Sign in / forgot password / reset.** MVP.
-- `[ ]` **E6.3 — `/account` dashboard.** MVP.
-  - Open entries by competition, pending skill submissions, recent
-    transactions, loyalty tier badge.
+- `[~]` **E6.1 — Sign up.** MVP.
+  - UI shipped against mock `AuthService.signUp()` at `/register` (email +
+    optional display name + password + confirm, password-match validator,
+    error path via `wrong@test.com`).
+  - **Still open:** email verification flow, social login parity (see F2.4),
+    real backend wiring (see F1.4 + F2.1).
+- `[~]` **E6.2 — Sign in / forgot password / reset.** MVP.
+  - UI shipped: `/login` against mock `AuthService.signIn()`, `/forgot-password`
+    against `AuthService.requestPasswordReset()` (always succeeds, security
+    pattern). `authGuard` captures `?returnUrl=` so the post-login redirect
+    works.
+  - **Still open:** real backend, actual reset email (E12.1), token refresh
+    (F2.3).
+- `[~]` **E6.3 — `/account` dashboard.** MVP.
+  - Skeleton shipped: identity card (initials, displayName, email),
+    sign-out button, placeholder panels for Open entries / Skill submissions
+    / Loyalty tier, "Up next" list pointing at remaining backlog items.
+  - **Still open:** real entry data once Competitions API lands; real
+    submission history once E4.2 ships; loyalty integration (E8).
 - `[ ]` **E6.4 — Profile settings.**
   - Display name, mobile, address (for prize delivery), comms preferences.
 - `[ ]` **E6.5 — Wallet / cash-out alternative.**
@@ -362,10 +402,17 @@ or a section in the same app behind admin guard.
 - `[ ]` **E13.1 — Competition CRUD.**
   - Create / publish / close competitions, edit spec, upload images.
 - `[ ]` **E13.2 — Draw runner.**
-  - Trigger the draw, see audit log, confirm winner.
+  - Trigger the draw, see the audit log, confirm winners.
   - Defaults to the wave's scheduled draw date (28-day cron from a fixed
     epoch). Manual override exists for legal / operational holds but emits
     an audit event when used.
+  - Calls the E4.4 winner-selection job (exact-pixel first, closest-pixel
+    fallback). Surfaces the **winner list** (may be 1 or many) plus
+    fallback distances in a reviewable preview before publication.
+  - Triggers downstream **procurement workflow** (BACKLOG E13.3): one
+    pre-built PC per winner, paid from the wave's entry-money pool.
+  - Per-winner outcome flag captures whether they elected the PC or the
+    cash equivalent.
 - `[ ]` **E13.3 — Manual cash-out / overrides.**
 - `[ ]` **E13.4 — Audit log viewer.**
 

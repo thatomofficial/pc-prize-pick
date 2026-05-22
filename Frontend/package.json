@@ -14,7 +14,8 @@
     "build:qa": "ng build --configuration=qa",
     "build:prod": "ng build --configuration=production",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "test:ci": "ng test --watch=false"
   },
   "prettier": {
     "printWidth": 100,

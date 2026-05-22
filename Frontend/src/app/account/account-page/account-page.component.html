@@ -1,0 +1,71 @@
+<app-site-nav />
+
+<main class="account">
+  <div class="u-container account__inner">
+    @if (user(); as u) {
+      <header class="account__masthead">
+        <div class="account__identity">
+          <span class="account__avatar t-mono" aria-hidden="true">{{ initials() }}</span>
+          <div class="account__identity-text">
+            <span class="t-overline t-overline--volt">§ Account</span>
+            <h1 class="account__heading">{{ u.displayName }}</h1>
+            <span class="account__email t-mono">{{ u.email }}</span>
+          </div>
+        </div>
+        <button type="button" class="account__signout" (click)="onSignOut()">
+          <span>Sign out</span>
+          <span class="account__signout-arrow" aria-hidden="true">↗</span>
+        </button>
+      </header>
+
+      <section class="account__panels">
+        <article class="account__panel">
+          <span class="t-overline">Open entries</span>
+          <span class="account__panel-value t-mono-xl">0</span>
+          <p class="account__panel-help">
+            You haven&rsquo;t entered the current wave yet. Browse the
+            <a routerLink="/" fragment="competitions">live competitions →</a>
+          </p>
+        </article>
+
+        <article class="account__panel">
+          <span class="t-overline">Skill submissions</span>
+          <span class="account__panel-value t-mono-xl">0</span>
+          <p class="account__panel-help">
+            No Spot-the-Ball shots locked in yet. Try a
+            <a routerLink="/skill">practice round →</a>
+            against the demo image.
+          </p>
+        </article>
+
+        <article class="account__panel">
+          <span class="t-overline">Loyalty tier</span>
+          <span class="account__panel-value t-mono-xl">Stars</span>
+          <p class="account__panel-help">
+            Earn 1 point per ZAR spent. Tier reviews happen on the 4-week wave boundary.
+          </p>
+        </article>
+
+        <article class="account__panel">
+          <span class="t-overline">Mock account</span>
+          <span class="account__panel-value t-mono">{{ u.id }}</span>
+          <p class="account__panel-help">
+            This account exists only in your browser's local storage. Sign out to clear it, or
+            refresh to confirm it persists.
+          </p>
+        </article>
+      </section>
+
+      <section class="account__next">
+        <h2 class="account__next-heading">Up next</h2>
+        <ul class="account__next-list" role="list">
+          <li>Wire real auth against the .NET backend (BACKLOG F1.2 + F2.1).</li>
+          <li>Profile settings: phone, address, comms prefs (BACKLOG E6.4).</li>
+          <li>Cash-out / payout details for prize winners (BACKLOG E6.5).</li>
+        </ul>
+      </section>
+    }
+  </div>
+</main>
+
+<app-site-footer />
