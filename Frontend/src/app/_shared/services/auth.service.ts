@@ -22,7 +22,9 @@ export class InvalidCellPhoneError extends Error {
   }
 }
 
-const STORAGE_KEY = 'pcp.auth.user';
+const USER_STORAGE_KEY = 'pcp.auth.user';
+const ACCESS_TOKEN_STORAGE_KEY = 'pcp.auth.accessToken';
+const REFRESH_TOKEN_STORAGE_KEY = 'pcp.auth.refreshToken';
 // Browser stalls feel more real than instant; matches a typical SA network.
 const FAKE_LATENCY_MS = 700;
 // Deliberately easy to demo — any password of 6+ chars works, except for
@@ -34,9 +36,12 @@ const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly userSignal = signal<User | null>(this.loadFromStorage());
+  private readonly userSignal = signal<User | null>(this.loadUserFromStorage());
+  private readonly accessTokenSignal = signal<string | null>(this.loadStored(ACCESS_TOKEN_STORAGE_KEY));
+  private refreshTokenValue: string | null = this.loadStored(REFRESH_TOKEN_STORAGE_KEY);
 
   readonly currentUser = this.userSignal.asReadonly();
+  readonly accessToken = this.accessTokenSignal.asReadonly();
   readonly isAuthed = computed(() => this.userSignal() !== null);
   readonly initials = computed(() => {
     const user = this.userSignal();
@@ -58,8 +63,7 @@ export class AuthService {
       displayName: deriveDisplayNameFromEmail(normalisedEmail),
       cellPhone: '',
     };
-    this.userSignal.set(user);
-    this.persist(user);
+    this.applySession(user);
     return user;
   }
 
@@ -84,8 +88,7 @@ export class AuthService {
       displayName: displayName.trim() || deriveDisplayNameFromEmail(normalisedEmail),
       cellPhone: normalisedPhone,
     };
-    this.userSignal.set(user);
-    this.persist(user);
+    this.applySession(user);
     return user;
   }
 
@@ -99,34 +102,76 @@ export class AuthService {
     console.log('[mock-auth] password reset requested for', email);
   }
 
-  signOut(): void {
-    this.userSignal.set(null);
-    this.clearStorage();
+  /**
+   * Exchange the refresh token for a fresh access token. Returns `true` when
+   * a new access token is now in `accessToken()`. The HTTP `authInterceptor`
+   * calls this once on a 401 before giving up and signing the user out.
+   *
+   * Mock implementation: succeeds whenever a refresh token is present.
+   * Real impl (F2.3) will POST to `/auth/refresh` and time the rotation.
+   */
+  async refreshSession(): Promise<boolean> {
+    await wait(FAKE_LATENCY_MS);
+    const user = this.userSignal();
+    if (!user || !this.refreshTokenValue) return false;
+    const refreshed = generateMockJwt(user.id);
+    this.accessTokenSignal.set(refreshed);
+    this.persist(ACCESS_TOKEN_STORAGE_KEY, refreshed);
+    return true;
   }
 
-  private loadFromStorage(): User | null {
-    if (typeof localStorage === 'undefined') return null;
+  signOut(): void {
+    this.userSignal.set(null);
+    this.accessTokenSignal.set(null);
+    this.refreshTokenValue = null;
+    this.clearStorage(USER_STORAGE_KEY);
+    this.clearStorage(ACCESS_TOKEN_STORAGE_KEY);
+    this.clearStorage(REFRESH_TOKEN_STORAGE_KEY);
+  }
+
+  private applySession(user: User): void {
+    const access = generateMockJwt(user.id);
+    const refresh = generateMockRefresh(user.id);
+    this.userSignal.set(user);
+    this.accessTokenSignal.set(access);
+    this.refreshTokenValue = refresh;
+    this.persist(USER_STORAGE_KEY, JSON.stringify(user));
+    this.persist(ACCESS_TOKEN_STORAGE_KEY, access);
+    this.persist(REFRESH_TOKEN_STORAGE_KEY, refresh);
+  }
+
+  private loadUserFromStorage(): User | null {
+    const raw = this.loadStored(USER_STORAGE_KEY);
+    if (!raw) return null;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as User) : null;
+      return JSON.parse(raw) as User;
     } catch {
       return null;
     }
   }
 
-  private persist(user: User): void {
+  private loadStored(key: string): string | null {
+    if (typeof localStorage === 'undefined') return null;
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  private persist(key: string, value: string): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+      localStorage.setItem(key, value);
     } catch {
       // Quota exceeded or storage unavailable — silently ignore for mock.
     }
   }
 
-  private clearStorage(): void {
+  private clearStorage(key: string): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(key);
     } catch {
       // ignore
     }
@@ -141,4 +186,28 @@ const deriveDisplayNameFromEmail = (email: string): string => {
     .filter((p) => p.length > 0)
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(' ');
+};
+
+// Mock JWT shaped like header.payload.signature so the interceptor and
+// downstream code can treat it as a real bearer. Not signed — F2.1 will
+// replace this once a real backend issues tokens.
+const generateMockJwt = (subject: string): string => {
+  const header = base64UrlEncode(JSON.stringify({ alg: 'none', typ: 'JWT' }));
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const payload = base64UrlEncode(
+    JSON.stringify({ sub: subject, iat: nowSeconds, exp: nowSeconds + 3600 }),
+  );
+  return `${header}.${payload}.mock`;
+};
+
+const generateMockRefresh = (subject: string): string =>
+  base64UrlEncode(`${subject}:${Date.now()}:refresh`);
+
+const base64UrlEncode = (input: string): string => {
+  if (typeof btoa !== 'function') {
+    // Browser-only mock; bail out with a stable placeholder rather than
+    // dragging in a polyfill we don't otherwise need.
+    return 'unsupported';
+  }
+  return btoa(input).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 };
