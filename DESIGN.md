@@ -57,11 +57,11 @@ the global palette.
 
 ### Typography
 
-| Family            | Stack                                       | Use                                  |
-| ----------------- | ------------------------------------------- | ------------------------------------ |
+| Family            | Stack                                         | Use                                    |
+| ----------------- | --------------------------------------------- | -------------------------------------- |
 | `--font-display`  | Instrument Serif → Cormorant Garamond → serif | Headlines, accent italics, card titles |
-| `--font-body`     | Hanken Grotesk → Helvetica Neue → system-ui | All running text, UI labels          |
-| `--font-mono`     | JetBrains Mono → SF Mono → Menlo            | Prices, countdowns, IDs, build codes |
+| `--font-body`     | Hanken Grotesk → Helvetica Neue → system-ui   | All running text, UI labels            |
+| `--font-mono`     | JetBrains Mono → SF Mono → Menlo              | Prices, countdowns, IDs, build codes   |
 
 Type scale tokens are responsive via `clamp()`:
 

@@ -11,7 +11,7 @@ format for cars — but built around the PC enthusiast market.
 
 ## Layout
 
-```
+```txt
 pc-prize-pick/
 ├── Frontend/         # Angular 21 app (SCSS, signals, standalone components)
 ├── Backend/          # ASP.NET Core 10 API (EF Core + PostgreSQL)
