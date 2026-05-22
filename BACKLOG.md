@@ -62,7 +62,7 @@ alone; they all unblock something downstream.
 
 ### F1 · API client + HTTP infrastructure
 
-- `[ ]` **F1.1 — Define `ApiClientService` wrapper.** MVP.
+- `[x]` **F1.1 — Define `ApiClientService` wrapper.** MVP.
   - Centralised `HttpClient` wrapper with typed `get<T>` / `post<T>` /
     `put<T>` / `delete<T>` helpers.
   - Reads base URL from `environment.apiEndpoint`.
@@ -362,7 +362,7 @@ challengeId, expiresAt, imageWidth, imageHeight }`.
 ### E9 · Workshop & about
 
 - `[ ]` **E9.1 — `/about` page.**
-  - Story, team, photos of the Cape Town workshop.
+  - Story, team, photos of the Johannesburg workshop.
 - `[ ]` **E9.2 — `/workshop/visit` booking.**
   - Pick a slot to tour the workshop and see the build before entering.
 
