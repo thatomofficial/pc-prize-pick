@@ -1,4 +1,5 @@
 output/
+out/
 .cache/
 catalog/.spec-cache/
 __pycache__/
