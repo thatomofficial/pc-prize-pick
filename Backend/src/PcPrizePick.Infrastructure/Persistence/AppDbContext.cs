@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PcPrizePick.Domain.Competitions;
 using PcPrizePick.Domain.Inventory;
+using PcPrizePick.Domain.Users;
 
 namespace PcPrizePick.Infrastructure.Persistence;
 
@@ -14,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<Gpu> Gpus => Set<Gpu>();
     public DbSet<Motherboard> Motherboards => Set<Motherboard>();
     public DbSet<Psu> Psus => Set<Psu>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -79,6 +81,18 @@ public class AppDbContext : DbContext
             entity.Property(p => p.Model).HasMaxLength(120).IsRequired();
             entity.Property(p => p.EfficiencyRating).HasMaxLength(40);
             entity.Property(p => p.Modularity).HasMaxLength(40);
+        });
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.ToTable("users");
+            entity.HasKey(u => u.Id);
+            entity.HasIndex(u => u.Email).IsUnique();
+            entity.Property(u => u.Email).HasMaxLength(255).IsRequired();
+            entity.Property(u => u.DisplayName).HasMaxLength(120).IsRequired();
+            entity.Property(u => u.CellPhone).HasMaxLength(20).IsRequired();
+            entity.Property(u => u.PasswordHash).HasMaxLength(255);
+            entity.Property(u => u.CreatedAt).HasDefaultValueSql("now() at time zone 'utc'");
         });
 
         modelBuilder.Entity<PcBuild>(entity =>

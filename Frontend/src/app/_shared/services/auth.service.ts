@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { User, deriveInitials } from '../models/user.model';
+import { User, deriveInitials, isValidSaMobile, normaliseCellPhone } from '../models/user.model';
 
 export class InvalidCredentialsError extends Error {
   constructor() {
@@ -12,6 +12,13 @@ export class EmailAlreadyRegisteredError extends Error {
   constructor() {
     super('That email is already registered. Try signing in instead.');
     this.name = 'EmailAlreadyRegisteredError';
+  }
+}
+
+export class InvalidCellPhoneError extends Error {
+  constructor() {
+    super('Enter a valid SA mobile number (0XX… or +27XX…).');
+    this.name = 'InvalidCellPhoneError';
   }
 }
 
@@ -38,7 +45,8 @@ export class AuthService {
 
   async signIn(email: string, password: string): Promise<User> {
     await wait(FAKE_LATENCY_MS);
-    if (email.trim().toLowerCase() === ALWAYS_FAILS_EMAIL) {
+    const normalisedEmail = email.trim().toLowerCase();
+    if (normalisedEmail === ALWAYS_FAILS_EMAIL) {
       throw new InvalidCredentialsError();
     }
     if (password.length < 6) {
@@ -46,23 +54,35 @@ export class AuthService {
     }
     const user: User = {
       id: `mock-${Date.now().toString(36)}`,
-      email: email.trim(),
-      displayName: deriveDisplayNameFromEmail(email.trim()),
+      email: normalisedEmail,
+      displayName: deriveDisplayNameFromEmail(normalisedEmail),
+      cellPhone: '',
     };
     this.userSignal.set(user);
     this.persist(user);
     return user;
   }
 
-  async signUp(email: string, password: string, displayName?: string): Promise<User> {
+  async signUp(
+    email: string,
+    password: string,
+    displayName: string,
+    cellPhone: string,
+  ): Promise<User> {
     await wait(FAKE_LATENCY_MS);
-    if (email.trim().toLowerCase() === ALWAYS_FAILS_EMAIL) {
+    const normalisedEmail = email.trim().toLowerCase();
+    if (normalisedEmail === ALWAYS_FAILS_EMAIL) {
       throw new EmailAlreadyRegisteredError();
+    }
+    const normalisedPhone = normaliseCellPhone(cellPhone);
+    if (!isValidSaMobile(normalisedPhone)) {
+      throw new InvalidCellPhoneError();
     }
     const user: User = {
       id: `mock-${Date.now().toString(36)}`,
-      email: email.trim(),
-      displayName: displayName?.trim() || deriveDisplayNameFromEmail(email.trim()),
+      email: normalisedEmail,
+      displayName: displayName.trim() || deriveDisplayNameFromEmail(normalisedEmail),
+      cellPhone: normalisedPhone,
     };
     this.userSignal.set(user);
     this.persist(user);

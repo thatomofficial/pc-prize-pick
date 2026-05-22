@@ -3,9 +3,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PcPrizePick.Domain.Competitions;
 using PcPrizePick.Domain.Inventory;
+using PcPrizePick.Domain.Users;
 using PcPrizePick.Infrastructure.Competitions;
 using PcPrizePick.Infrastructure.Inventory;
 using PcPrizePick.Infrastructure.Persistence;
+using PcPrizePick.Infrastructure.Users;
 
 namespace PcPrizePick.Infrastructure;
 
@@ -24,6 +26,7 @@ public static class DependencyInjection
 
         services.AddScoped<ICompetitionsRepository, CompetitionsRepository>();
         services.AddScoped<IPcBuildsRepository, PcBuildsRepository>();
+        services.AddScoped<IUsersRepository, UsersRepository>();
 
         return services;
     }
