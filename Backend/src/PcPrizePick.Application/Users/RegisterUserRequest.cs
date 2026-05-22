@@ -28,4 +28,14 @@ public sealed record RegisterUserRequest
     [Required(ErrorMessage = "Password is required.")]
     [StringLength(100, MinimumLength = 6, ErrorMessage = "Password must be at least 6 characters.")]
     public required string Password { get; init; }
+
+    /// <summary>True iff the user ticked the Terms of Use box. POPIA / CPA
+    /// require explicit consent — `[Range(true,true)]` fails validation when
+    /// the box is unticked, so the caller doesn't need a custom rule.</summary>
+    [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the Terms of Use.")]
+    public required bool AcceptedTermsOfUse { get; init; }
+
+    /// <summary>True iff the user ticked the Privacy Policy box.</summary>
+    [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the Privacy Policy.")]
+    public required bool AcceptedPrivacyPolicy { get; init; }
 }

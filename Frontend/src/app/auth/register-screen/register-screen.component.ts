@@ -10,6 +10,7 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import {
   AuthService,
+  ConsentRequiredError,
   EmailAlreadyRegisteredError,
   InvalidCellPhoneError,
 } from '../../_shared/services/auth.service';
@@ -23,6 +24,8 @@ interface RegisterForm {
   cellPhone: FormControl<string>;
   password: FormControl<string>;
   confirmPassword: FormControl<string>;
+  acceptedTermsOfUse: FormControl<boolean>;
+  acceptedPrivacyPolicy: FormControl<boolean>;
 }
 
 const matchPasswords = (group: AbstractControl): ValidationErrors | null => {
@@ -37,6 +40,9 @@ const saMobileValidator = (control: AbstractControl): ValidationErrors | null =>
   if (!raw) return null; // Required handles empties.
   return isValidSaMobile(normaliseCellPhone(raw)) ? null : { saMobile: true };
 };
+
+const mustBeTrueValidator = (control: AbstractControl): ValidationErrors | null =>
+  control.value === true ? null : { mustBeTrue: true };
 
 @Component({
   selector: 'app-register-screen',
@@ -70,6 +76,14 @@ export class RegisterScreenComponent {
       confirmPassword: new FormControl('', {
         nonNullable: true,
         validators: [Validators.required],
+      }),
+      acceptedTermsOfUse: new FormControl(false, {
+        nonNullable: true,
+        validators: [mustBeTrueValidator],
+      }),
+      acceptedPrivacyPolicy: new FormControl(false, {
+        nonNullable: true,
+        validators: [mustBeTrueValidator],
       }),
     },
     { validators: matchPasswords },
@@ -112,6 +126,11 @@ export class RegisterScreenComponent {
       return field === 'displayName' ? 'At least 2 characters.' : 'At least 6 characters.';
     }
     if (control.hasError('maxlength')) return 'Too long.';
+    if (control.hasError('mustBeTrue')) {
+      return field === 'acceptedTermsOfUse'
+        ? 'You must accept the Terms of Use to register.'
+        : 'You must accept the Privacy Policy to register.';
+    }
     return 'Invalid value.';
   }
 
@@ -123,18 +142,33 @@ export class RegisterScreenComponent {
       return;
     }
 
-    const { email, password, displayName, cellPhone } = this.form.getRawValue();
+    const {
+      email,
+      password,
+      displayName,
+      cellPhone,
+      acceptedTermsOfUse,
+      acceptedPrivacyPolicy,
+    } = this.form.getRawValue();
     this.status.set('submitting');
     this.form.disable({ emitEvent: false });
 
     try {
-      await this.auth.signUp(email, password, displayName, cellPhone);
+      await this.auth.signUp(
+        email,
+        password,
+        displayName,
+        cellPhone,
+        acceptedTermsOfUse,
+        acceptedPrivacyPolicy,
+      );
       this.status.set('success');
       await this.router.navigateByUrl('/account');
     } catch (error) {
       const message =
         error instanceof EmailAlreadyRegisteredError ||
-        error instanceof InvalidCellPhoneError
+        error instanceof InvalidCellPhoneError ||
+        error instanceof ConsentRequiredError
           ? error.message
           : 'Something went wrong. Try again.';
       this.submitError.set(message);

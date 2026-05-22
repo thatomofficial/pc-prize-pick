@@ -21,6 +21,17 @@ public class User
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? LastSignInAt { get; set; }
 
+    /// <summary>When the user ticked the Terms of Use box during sign-up.
+    /// Required by POPIA / CPA — we store the timestamp (not just a bool)
+    /// so a future ToU revision can detect who's on the old version and
+    /// prompt them to re-accept.</summary>
+    public required DateTimeOffset AcceptedTermsAt { get; set; }
+
+    /// <summary>When the user ticked the Privacy Policy box during sign-up.
+    /// Stored separately from <see cref="AcceptedTermsAt"/> because the two
+    /// documents can revise independently.</summary>
+    public required DateTimeOffset AcceptedPrivacyAt { get; set; }
+
     public User()
     {
         Id = Guid.CreateVersion7();
@@ -37,6 +48,8 @@ public class User
         string email,
         string displayName,
         string cellPhone,
+        bool acceptedTermsOfUse,
+        bool acceptedPrivacyPolicy,
         string? passwordHash = null)
     {
         var normalisedEmail = NormaliseEmail(email);
@@ -62,12 +75,29 @@ public class User
                 nameof(cellPhone));
         }
 
+        if (!acceptedTermsOfUse)
+        {
+            throw new ArgumentException(
+                "You must accept the Terms of Use to register.",
+                nameof(acceptedTermsOfUse));
+        }
+
+        if (!acceptedPrivacyPolicy)
+        {
+            throw new ArgumentException(
+                "You must accept the Privacy Policy to register.",
+                nameof(acceptedPrivacyPolicy));
+        }
+
+        var now = DateTimeOffset.UtcNow;
         return new User
         {
             Email = normalisedEmail,
             DisplayName = normalisedDisplay,
             CellPhone = normalisedPhone,
             PasswordHash = passwordHash,
+            AcceptedTermsAt = now,
+            AcceptedPrivacyAt = now,
         };
     }
 

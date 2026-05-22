@@ -22,6 +22,13 @@ export class InvalidCellPhoneError extends Error {
   }
 }
 
+export class ConsentRequiredError extends Error {
+  constructor() {
+    super('You must accept the Terms of Use and Privacy Policy to register.');
+    this.name = 'ConsentRequiredError';
+  }
+}
+
 const USER_STORAGE_KEY = 'pcp.auth.user';
 const ACCESS_TOKEN_STORAGE_KEY = 'pcp.auth.accessToken';
 const REFRESH_TOKEN_STORAGE_KEY = 'pcp.auth.refreshToken';
@@ -57,11 +64,17 @@ export class AuthService {
     if (password.length < 6) {
       throw new InvalidCredentialsError();
     }
+    const now = new Date().toISOString();
     const user: User = {
       id: `mock-${Date.now().toString(36)}`,
       email: normalisedEmail,
       displayName: deriveDisplayNameFromEmail(normalisedEmail),
       cellPhone: '',
+      // Mock sign-in doesn't re-collect consent — assume the existing
+      // account already has it on file. Stamp `now` so the shape is
+      // non-null for downstream consumers.
+      acceptedTermsAt: now,
+      acceptedPrivacyAt: now,
     };
     this.applySession(user);
     return user;
@@ -72,6 +85,8 @@ export class AuthService {
     password: string,
     displayName: string,
     cellPhone: string,
+    acceptedTermsOfUse: boolean,
+    acceptedPrivacyPolicy: boolean,
   ): Promise<User> {
     await wait(FAKE_LATENCY_MS);
     const normalisedEmail = email.trim().toLowerCase();
@@ -82,11 +97,17 @@ export class AuthService {
     if (!isValidSaMobile(normalisedPhone)) {
       throw new InvalidCellPhoneError();
     }
+    if (!acceptedTermsOfUse || !acceptedPrivacyPolicy) {
+      throw new ConsentRequiredError();
+    }
+    const now = new Date().toISOString();
     const user: User = {
       id: `mock-${Date.now().toString(36)}`,
       email: normalisedEmail,
       displayName: displayName.trim() || deriveDisplayNameFromEmail(normalisedEmail),
       cellPhone: normalisedPhone,
+      acceptedTermsAt: now,
+      acceptedPrivacyAt: now,
     };
     this.applySession(user);
     return user;

@@ -93,6 +93,8 @@ public class AppDbContext : DbContext
             entity.Property(u => u.CellPhone).HasMaxLength(20).IsRequired();
             entity.Property(u => u.PasswordHash).HasMaxLength(255);
             entity.Property(u => u.CreatedAt).HasDefaultValueSql("now() at time zone 'utc'");
+            entity.Property(u => u.AcceptedTermsAt).IsRequired();
+            entity.Property(u => u.AcceptedPrivacyAt).IsRequired();
         });
 
         modelBuilder.Entity<PcBuild>(entity =>

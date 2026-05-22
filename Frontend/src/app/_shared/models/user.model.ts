@@ -3,6 +3,10 @@ export interface User {
   email: string;
   displayName: string;
   cellPhone: string;
+  /** ISO 8601 timestamp the user ticked the Terms of Use box. */
+  acceptedTermsAt: string;
+  /** ISO 8601 timestamp the user ticked the Privacy Policy box. */
+  acceptedPrivacyAt: string;
 }
 
 /**

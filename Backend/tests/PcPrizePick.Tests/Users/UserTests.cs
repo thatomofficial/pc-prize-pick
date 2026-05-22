@@ -54,15 +54,20 @@ public class UserTests
     [Fact]
     public void Create_ReturnsUserWithNormalisedFields()
     {
+        var before = DateTimeOffset.UtcNow.AddSeconds(-1);
         var user = User.Create(
             email: "  Ada@Example.COM ",
             displayName: "  Ada  ",
-            cellPhone: "082 123 4567");
+            cellPhone: "082 123 4567",
+            acceptedTermsOfUse: true,
+            acceptedPrivacyPolicy: true);
 
         Assert.Equal("ada@example.com", user.Email);
         Assert.Equal("Ada", user.DisplayName);
         Assert.Equal("+27821234567", user.CellPhone);
         Assert.NotEqual(Guid.Empty, user.Id);
+        Assert.True(user.AcceptedTermsAt >= before);
+        Assert.True(user.AcceptedPrivacyAt >= before);
     }
 
     [Fact]
@@ -71,7 +76,9 @@ public class UserTests
         var ex = Assert.Throws<ArgumentException>(() => User.Create(
             email: "nope",
             displayName: "Ada",
-            cellPhone: "0821234567"));
+            cellPhone: "0821234567",
+            acceptedTermsOfUse: true,
+            acceptedPrivacyPolicy: true));
         Assert.Equal("email", ex.ParamName);
     }
 
@@ -81,7 +88,9 @@ public class UserTests
         var ex = Assert.Throws<ArgumentException>(() => User.Create(
             email: "ada@example.com",
             displayName: "A",
-            cellPhone: "0821234567"));
+            cellPhone: "0821234567",
+            acceptedTermsOfUse: true,
+            acceptedPrivacyPolicy: true));
         Assert.Equal("displayName", ex.ParamName);
     }
 
@@ -91,7 +100,33 @@ public class UserTests
         var ex = Assert.Throws<ArgumentException>(() => User.Create(
             email: "ada@example.com",
             displayName: "Ada",
-            cellPhone: "+12025550100"));
+            cellPhone: "+12025550100",
+            acceptedTermsOfUse: true,
+            acceptedPrivacyPolicy: true));
         Assert.Equal("cellPhone", ex.ParamName);
+    }
+
+    [Fact]
+    public void Create_ThrowsWhenTermsNotAccepted()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => User.Create(
+            email: "ada@example.com",
+            displayName: "Ada",
+            cellPhone: "0821234567",
+            acceptedTermsOfUse: false,
+            acceptedPrivacyPolicy: true));
+        Assert.Equal("acceptedTermsOfUse", ex.ParamName);
+    }
+
+    [Fact]
+    public void Create_ThrowsWhenPrivacyNotAccepted()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => User.Create(
+            email: "ada@example.com",
+            displayName: "Ada",
+            cellPhone: "0821234567",
+            acceptedTermsOfUse: true,
+            acceptedPrivacyPolicy: false));
+        Assert.Equal("acceptedPrivacyPolicy", ex.ParamName);
     }
 }
