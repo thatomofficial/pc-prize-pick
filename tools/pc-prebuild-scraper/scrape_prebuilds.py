@@ -36,6 +36,22 @@ SAST = dt.timezone(dt.timedelta(hours=2))
 # so existing non-interactive runs (CI / scheduled jobs) stay quiet.
 _VERBOSE = False
 
+# Optional event bus for the live dashboard. None when --dashboard is off
+# so the emit() call is a cheap one-line short-circuit.
+_BUS: Any | None = None
+
+
+def set_bus(bus: Any | None) -> None:
+    global _BUS
+    _BUS = bus
+
+
+def emit(event_type: str, **data: Any) -> None:
+    """Publish a dashboard event. No-op when no bus is registered."""
+    if _BUS is None:
+        return
+    _BUS.publish({"type": event_type, "ts": now_iso(), "data": data})
+
 
 def set_verbose(enabled: bool) -> None:
     global _VERBOSE
@@ -1302,6 +1318,13 @@ def scrape_sources(
             "scrape",
             f"source={source.name}  maxPages={source.max_pages}  delay={source.request_delay_seconds}s",
         )
+        emit(
+            "source_started",
+            name=source.name,
+            base_url=source.base_url,
+            max_pages=source.max_pages,
+            delay_seconds=source.request_delay_seconds,
+        )
         queue: deque[tuple[str, int]] = deque()
         visited: set[str] = set()
 
@@ -1311,6 +1334,7 @@ def scrape_sources(
                 queue.append((normalized, 0))
 
         vlog("scrape", f"queued {len(queue)} start URL(s) from sitemap + config")
+        emit("queued", source=source.name, count=len(queue))
 
         pages_for_source = 0
         while queue and pages_for_source < source.max_pages:
@@ -1332,12 +1356,14 @@ def scrape_sources(
                 continue
 
             vlog("scrape", f"fetch d={depth}  {_short_url(url)}")
+            emit("fetch", url=url, depth=depth, source=source.name)
 
             try:
                 markup = fetcher.fetch_text(url)
             except (OSError, urllib.error.URLError, UnicodeDecodeError) as exc:
                 stats["fetchErrors"].append({"url": url, "error": str(exc)})
                 vlog("scrape", f"  ✗ fetch error: {exc}")
+                emit("fetch_error", url=url, error=str(exc))
                 continue
 
             pages_for_source += 1
@@ -1349,6 +1375,15 @@ def scrape_sources(
                 vlog(
                     "scrape",
                     f"  ✓ product: {product.name[:60]}  R{product.price_cents/100:,.0f}  conf={product.confidence}",
+                )
+                emit(
+                    "product",
+                    url=url,
+                    name=product.name,
+                    price_cents=product.price_cents,
+                    image_url=product.image_url,
+                    confidence=product.confidence,
+                    source=source.name,
                 )
             else:
                 vlog("scrape", "  ↺ no product on this page")
@@ -1439,8 +1474,14 @@ def build_inventory(
         specs = product.specs
         warnings = list(product.warnings)
 
-        cpu_id = _resolve_cpu(specs.get("cpu"), catalog, cpu_rows, warnings, spec_clients)
-        gpu_id = _resolve_gpu(specs.get("gpu"), catalog, gpu_rows, warnings, spec_clients)
+        cpu_id = _resolve_cpu(
+            specs.get("cpu"), catalog, cpu_rows, warnings, spec_clients,
+            build_url=product.source_url,
+        )
+        gpu_id = _resolve_gpu(
+            specs.get("gpu"), catalog, gpu_rows, warnings, spec_clients,
+            build_url=product.source_url,
+        )
         haystack = f"{product.name} {product.description or ''}"
         mobo_id = _resolve_motherboard(haystack, mobo_rows, warnings)
         psu_id = _resolve_psu(haystack, psu_rows, warnings)
@@ -1499,9 +1540,12 @@ def _resolve_cpu(
     rows: dict[tuple[str, str], dict[str, Any]],
     warnings: list[str],
     spec_clients: list["SpecLookupClient"] | None = None,
+    *,
+    build_url: str | None = None,
 ) -> uuid.UUID | None:
     if not raw or raw.startswith("Review "):
         warnings.append("CPU model not extracted from page.")
+        emit("warning", build_url=build_url, message="CPU model not extracted from page.")
         return None
 
     entry = catalog.lookup_cpu(raw)
@@ -1509,6 +1553,18 @@ def _resolve_cpu(
         vlog(
             "catalog",
             f"CPU hit '{raw}' → {entry.brand} {entry.model}  ({entry.data.get('cores')}c/{entry.data.get('threads')}t)",
+        )
+        emit(
+            "catalog",
+            kind="cpu",
+            raw=raw,
+            brand=entry.brand,
+            model=entry.model,
+            cores=entry.data.get("cores"),
+            threads=entry.data.get("threads"),
+            tdp_watts=entry.data.get("tdp_watts"),
+            socket=entry.data.get("socket"),
+            build_url=build_url,
         )
         key = (entry.brand, entry.model)
         cpu_id = component_uuid("cpu", entry.brand, entry.model)
@@ -1527,6 +1583,7 @@ def _resolve_cpu(
         return cpu_id
 
     vlog("catalog", f"CPU miss '{raw}' — falling back to spec sources")
+    emit("catalog_miss", kind="cpu", model=raw, build_url=build_url)
 
     # Catalog miss — try the spec lookup sources.
     for client in spec_clients or []:
@@ -1535,6 +1592,17 @@ def _resolve_cpu(
             continue
         vlog("lookup", f"CPU '{raw}' filled from {client.name}: cores={looked_up.get('cores')} tdp={looked_up.get('tdp_watts')}W")
         brand, model = _split_brand_model(raw)
+        emit(
+            "lookup",
+            kind="cpu",
+            raw=raw,
+            brand=brand,
+            model=model,
+            source=client.name,
+            cores=looked_up.get("cores"),
+            tdp_watts=looked_up.get("tdp_watts"),
+            build_url=build_url,
+        )
         key = (brand, model)
         cpu_id = component_uuid("cpu", brand, model)
         if key not in rows:
@@ -1554,9 +1622,10 @@ def _resolve_cpu(
         )
         return cpu_id
 
-    warnings.append(
-        f"CPU '{raw}' not in catalog or spec sources — add an entry to catalog/cpus.json."
-    )
+    msg = f"CPU '{raw}' not in catalog or spec sources — add an entry to catalog/cpus.json."
+    warnings.append(msg)
+    emit("lookup_failed", kind="cpu", model=raw, build_url=build_url)
+    emit("warning", build_url=build_url, message=msg)
     return None
 
 
@@ -1566,9 +1635,12 @@ def _resolve_gpu(
     rows: dict[tuple[str, str], dict[str, Any]],
     warnings: list[str],
     spec_clients: list["SpecLookupClient"] | None = None,
+    *,
+    build_url: str | None = None,
 ) -> uuid.UUID | None:
     if not raw or raw.startswith("Review "):
         warnings.append("GPU model not extracted from page.")
+        emit("warning", build_url=build_url, message="GPU model not extracted from page.")
         return None
 
     entry = catalog.lookup_gpu(raw)
@@ -1576,6 +1648,17 @@ def _resolve_gpu(
         vlog(
             "catalog",
             f"GPU hit '{raw}' → {entry.brand} {entry.model}  ({entry.data.get('vram_gb')}GB {entry.data.get('memory_type')})",
+        )
+        emit(
+            "catalog",
+            kind="gpu",
+            raw=raw,
+            brand=entry.brand,
+            model=entry.model,
+            vram_gb=entry.data.get("vram_gb"),
+            memory_type=entry.data.get("memory_type"),
+            power_draw_watts=entry.data.get("power_draw_watts"),
+            build_url=build_url,
         )
         key = (entry.brand, entry.model)
         gpu_id = component_uuid("gpu", entry.brand, entry.model)
@@ -1591,6 +1674,7 @@ def _resolve_gpu(
         return gpu_id
 
     vlog("catalog", f"GPU miss '{raw}' — falling back to spec sources")
+    emit("catalog_miss", kind="gpu", model=raw, build_url=build_url)
 
     # Catalog miss — try the spec lookup sources.
     for client in spec_clients or []:
@@ -1599,6 +1683,17 @@ def _resolve_gpu(
             continue
         vlog("lookup", f"GPU '{raw}' filled from {client.name}: vram={looked_up.get('vram_gb')}GB {looked_up.get('memory_type')}")
         brand, model = _split_brand_model(raw)
+        emit(
+            "lookup",
+            kind="gpu",
+            raw=raw,
+            brand=brand,
+            model=model,
+            source=client.name,
+            vram_gb=looked_up.get("vram_gb"),
+            memory_type=looked_up.get("memory_type"),
+            build_url=build_url,
+        )
         key = (brand, model)
         gpu_id = component_uuid("gpu", brand, model)
         if key not in rows:
@@ -1615,9 +1710,10 @@ def _resolve_gpu(
         )
         return gpu_id
 
-    warnings.append(
-        f"GPU '{raw}' not in catalog or spec sources — add an entry to catalog/gpus.json."
-    )
+    msg = f"GPU '{raw}' not in catalog or spec sources — add an entry to catalog/gpus.json."
+    warnings.append(msg)
+    emit("lookup_failed", kind="gpu", model=raw, build_url=build_url)
+    emit("warning", build_url=build_url, message=msg)
     return None
 
 
@@ -2051,6 +2147,22 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="Stream per-URL fetches, catalog hits/misses, and spec lookups to stdout.",
     )
+    parser.add_argument(
+        "--dashboard",
+        action="store_true",
+        help="Open a live web dashboard streaming progress via Server-Sent Events.",
+    )
+    parser.add_argument(
+        "--dashboard-port",
+        type=int,
+        default=8765,
+        help="Port for the --dashboard HTTP server (default 8765).",
+    )
+    parser.add_argument(
+        "--dashboard-no-open",
+        action="store_true",
+        help="With --dashboard, do not auto-open the browser.",
+    )
     return parser.parse_args(argv)
 
 
@@ -2061,6 +2173,31 @@ def main(argv: list[str]) -> int:
     catalog = Catalog.load(args.catalog_dir)
     vlog("config", f"loaded {len(sources)} source(s), {len(spec_sources)} spec source(s)")
     vlog("catalog", f"loaded {len(catalog._cpus)} CPUs, {len(catalog._gpus)} GPUs")
+
+    dashboard_bus = None
+    dashboard_server = None
+    if args.dashboard:
+        from dashboard import EventBus, start_dashboard
+        dashboard_bus = EventBus()
+        set_bus(dashboard_bus)
+        dashboard_server = start_dashboard(
+            args.dashboard_port,
+            dashboard_bus,
+            open_browser=not args.dashboard_no_open,
+        )
+        print(
+            f"Dashboard live at http://127.0.0.1:{args.dashboard_port}/",
+            flush=True,
+        )
+        emit(
+            "config",
+            sources=len(sources),
+            spec_sources=len(spec_sources),
+            catalog_cpus=len(catalog._cpus),
+            catalog_gpus=len(catalog._gpus),
+            status=args.status,
+        )
+
     fetcher = Fetcher(args.user_agent, args.timeout_seconds)
     robots = None if args.no_robots else RobotsCache(args.user_agent, args.timeout_seconds)
 
@@ -2081,6 +2218,18 @@ def main(argv: list[str]) -> int:
         catalog,
         build_status=args.status,
         spec_clients=spec_clients,
+    )
+
+    emit(
+        "summary",
+        products=len(products),
+        pages_scanned=stats.get("pagesScanned", 0),
+        fetch_errors=len(stats.get("fetchErrors", [])),
+        pc_builds=len(inventory["pc_builds"]),
+        cpus=len(inventory["cpus"]),
+        gpus=len(inventory["gpus"]),
+        motherboards=len(inventory["motherboards"]),
+        psus=len(inventory["psus"]),
     )
 
     raw_output = {
@@ -2114,6 +2263,22 @@ def main(argv: list[str]) -> int:
 
     if stats["fetchErrors"]:
         print(f"Fetch errors: {len(stats['fetchErrors'])}. See output JSON stats.", file=sys.stderr)
+
+    emit("done", ok=True)
+
+    if dashboard_server is not None:
+        print(
+            "Dashboard still serving — press Ctrl-C to exit.",
+            flush=True,
+        )
+        try:
+            while True:
+                time.sleep(3600)
+        except KeyboardInterrupt:
+            print("Shutting down.", flush=True)
+            dashboard_server.shutdown()
+            if dashboard_bus is not None:
+                dashboard_bus.close()
 
     return 0
 
