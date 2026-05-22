@@ -1,0 +1,7 @@
+output/
+out/
+.cache/
+catalog/.spec-cache/
+__pycache__/
+*.pyc
+sources.local.json
