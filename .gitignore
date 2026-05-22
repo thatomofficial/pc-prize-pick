@@ -43,3 +43,8 @@ yarn-error.log*
 # Misc
 .tmp/
 .cache/
+
+# Scraper outputs (tools/pc-prebuild-scraper)
+tools/**/out/
+tools/**/output/
+tools/**/.spec-cache/

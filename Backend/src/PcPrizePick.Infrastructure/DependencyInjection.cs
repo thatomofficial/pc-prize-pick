@@ -2,7 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PcPrizePick.Domain.Competitions;
+using PcPrizePick.Domain.Inventory;
 using PcPrizePick.Infrastructure.Competitions;
+using PcPrizePick.Infrastructure.Inventory;
 using PcPrizePick.Infrastructure.Persistence;
 
 namespace PcPrizePick.Infrastructure;
@@ -21,6 +23,7 @@ public static class DependencyInjection
             }));
 
         services.AddScoped<ICompetitionsRepository, CompetitionsRepository>();
+        services.AddScoped<IPcBuildsRepository, PcBuildsRepository>();
 
         return services;
     }
