@@ -11,16 +11,21 @@ namespace PcPrizePick.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // 1. Null any existing rows that carry the `-infinity` sentinel
-            //    stamped by the previous migration. POPIA-wise a sentinel
-            //    timestamp is worse than NULL — NULL is honest about the
-            //    absence of consent on file.
+            // 1. Null any existing rows that carry the sentinel default the
+            //    AddUserConsents migration stamped on backfill. The C#
+            //    default was `new DateTimeOffset(new DateTime(1, 1, 1, ...))`
+            //    — Npgsql usually persists that as `0001-01-01 00:00:00+00`,
+            //    but on some setups (DateRange / legacy timestamp mode) it
+            //    lands as `-infinity` instead, so we cover both. Real
+            //    consent is stamped 2026+, so anything <= year 1 is the
+            //    sentinel — POPIA-wise NULL is more honest than a value
+            //    that masquerades as recorded consent.
             migrationBuilder.Sql(
                 "UPDATE users SET \"AcceptedTermsAt\" = NULL " +
-                "WHERE \"AcceptedTermsAt\" = TIMESTAMPTZ '-infinity';");
+                "WHERE \"AcceptedTermsAt\" <= TIMESTAMPTZ '0001-01-02';");
             migrationBuilder.Sql(
                 "UPDATE users SET \"AcceptedPrivacyAt\" = NULL " +
-                "WHERE \"AcceptedPrivacyAt\" = TIMESTAMPTZ '-infinity';");
+                "WHERE \"AcceptedPrivacyAt\" <= TIMESTAMPTZ '0001-01-02';");
 
             // 2. Drop the column-level defaults so future inserts that omit
             //    these columns leave them NULL instead of resurrecting the
