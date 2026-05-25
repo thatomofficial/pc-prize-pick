@@ -8,10 +8,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+    <!--
+      Microsoft.EntityFrameworkCore.Design is referenced by
+      PcPrizePick.Infrastructure (where the DbContext and migrations live)
+      and flows here transitively, which is all the dotnet ef tooling
+      needs when this project is used as the startup project. Re-adding
+      it here would risk version drift with the Infrastructure ref.
+    -->
   </ItemGroup>
 
   <ItemGroup>

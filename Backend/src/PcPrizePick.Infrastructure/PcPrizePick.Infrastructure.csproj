@@ -6,9 +6,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      EF Core Design assets need to flow transitively to the API project so
+      the dotnet ef tooling (run with startup-project pointing at the API)
+      can resolve them. PrivateAssets is relaxed to "contentfiles;analyzers"
+      so build assets reach consumers, but content and analyzers stay
+      scoped to this project.
+    -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.*">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
+      <PrivateAssets>contentfiles;analyzers</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.*" />
   </ItemGroup>
