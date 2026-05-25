@@ -67,6 +67,16 @@ public class CorrelationIdMiddlewareTests
     }
 
     [Fact]
+    public async Task TrimsWhitespaceAroundInboundId()
+    {
+        var context = await RunPipeline(c =>
+            c.Request.Headers[CorrelationIdMiddleware.HeaderName] = "   client-abc-123   ");
+
+        Assert.Equal("client-abc-123", context.Response.Headers[CorrelationIdMiddleware.HeaderName]);
+        Assert.Equal("client-abc-123", context.Items[CorrelationIdMiddleware.ContextItemKey]);
+    }
+
+    [Fact]
     public async Task RejectsOverlyLongIdAndMintsFresh()
     {
         var context = await RunPipeline(c =>

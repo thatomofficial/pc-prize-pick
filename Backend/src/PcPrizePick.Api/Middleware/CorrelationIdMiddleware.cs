@@ -46,9 +46,14 @@ public sealed class CorrelationIdMiddleware
         foreach (var candidate in incoming)
         {
             if (string.IsNullOrWhiteSpace(candidate)) continue;
-            if (candidate.Length > MaxInboundLength) continue;
-            if (candidate.Any(char.IsControl)) continue;
-            return candidate;
+            // Trim BEFORE the length / control-char checks so a value like
+            // " abc " is treated the same as "abc" — and so the id we
+            // stash and log is stable across clients that pad the header.
+            var trimmed = candidate.Trim();
+            if (trimmed.Length == 0) continue;
+            if (trimmed.Length > MaxInboundLength) continue;
+            if (trimmed.Any(char.IsControl)) continue;
+            return trimmed;
         }
         return Guid.NewGuid().ToString("D");
     }
