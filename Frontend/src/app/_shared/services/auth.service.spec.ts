@@ -3,7 +3,9 @@ import { AuthService } from './auth.service';
 
 const USER_KEY = 'pcp.auth.user';
 const ACCESS_KEY = 'pcp.auth.accessToken';
-const REFRESH_KEY = 'pcp.auth.refreshToken';
+// Pre-PR builds wrote this. New builds never write it, but we still
+// assert it gets cleaned up if it's present (XSS hygiene).
+const LEGACY_REFRESH_KEY = 'pcp.auth.refreshToken';
 
 const validStoredUser = {
   id: 'mock-1',
@@ -44,7 +46,7 @@ const installLocalStorageShim = (): void => {
 };
 
 const clearAuthStorage = (): void => {
-  for (const key of [USER_KEY, ACCESS_KEY, REFRESH_KEY]) {
+  for (const key of [USER_KEY, ACCESS_KEY, LEGACY_REFRESH_KEY]) {
     localStorage.removeItem(key);
   }
 };
@@ -62,7 +64,6 @@ describe('AuthService session restore', () => {
   it('restores a fully-formed stored user', () => {
     localStorage.setItem(USER_KEY, JSON.stringify(validStoredUser));
     localStorage.setItem(ACCESS_KEY, 'stored-access');
-    localStorage.setItem(REFRESH_KEY, 'stored-refresh');
 
     TestBed.configureTestingModule({});
     const auth = TestBed.inject(AuthService);
@@ -99,7 +100,7 @@ describe('AuthService session restore', () => {
     };
     localStorage.setItem(USER_KEY, JSON.stringify(legacy));
     localStorage.setItem(ACCESS_KEY, 'stale-access');
-    localStorage.setItem(REFRESH_KEY, 'stale-refresh');
+    localStorage.setItem(LEGACY_REFRESH_KEY, 'stale-refresh');
 
     TestBed.configureTestingModule({});
     const auth = TestBed.inject(AuthService);
@@ -109,7 +110,10 @@ describe('AuthService session restore', () => {
     expect(auth.accessToken()).toBeNull();
     expect(localStorage.getItem(USER_KEY)).toBeNull();
     expect(localStorage.getItem(ACCESS_KEY)).toBeNull();
-    expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
+    // Stale-purge must also sweep any legacy refresh token written by
+    // older builds — leaving it behind is the XSS exposure we just
+    // closed off.
+    expect(localStorage.getItem(LEGACY_REFRESH_KEY)).toBeNull();
   });
 
   it('purges entries where required fields are the wrong type', () => {
@@ -150,5 +154,45 @@ describe('AuthService session restore', () => {
     expect(auth.currentUser()).toBeNull();
     expect(auth.isAuthed()).toBe(false);
     expect(auth.accessToken()).toBeNull();
+  });
+});
+
+describe('AuthService refresh-token hygiene', () => {
+  beforeEach(() => {
+    installLocalStorageShim();
+    TestBed.resetTestingModule();
+  });
+
+  afterEach(() => {
+    clearAuthStorage();
+  });
+
+  it('never persists a refresh token to localStorage on sign-up', async () => {
+    TestBed.configureTestingModule({});
+    const auth = TestBed.inject(AuthService);
+
+    await auth.signUp('newbie@example.com', 'hunter2', 'Newbie', '+27821234567', true, true);
+
+    // Session is live and the access token is persisted for reload...
+    expect(auth.isAuthed()).toBe(true);
+    expect(localStorage.getItem(ACCESS_KEY)).not.toBeNull();
+    expect(localStorage.getItem(USER_KEY)).not.toBeNull();
+    // ...but the refresh token must stay in-memory only — putting it in
+    // localStorage is the XSS exposure we deliberately closed off.
+    expect(localStorage.getItem(LEGACY_REFRESH_KEY)).toBeNull();
+    // It still exists in memory: a refresh succeeds within the same tab.
+    expect(await auth.refreshSession()).toBe(true);
+    // Even after refreshing the access token, nothing leaks to storage.
+    expect(localStorage.getItem(LEGACY_REFRESH_KEY)).toBeNull();
+  });
+
+  it('never persists a refresh token to localStorage on sign-in', async () => {
+    TestBed.configureTestingModule({});
+    const auth = TestBed.inject(AuthService);
+
+    await auth.signIn('ada@example.com', 'hunter2');
+
+    expect(auth.isAuthed()).toBe(true);
+    expect(localStorage.getItem(LEGACY_REFRESH_KEY)).toBeNull();
   });
 });

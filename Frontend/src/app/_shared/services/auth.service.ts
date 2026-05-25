@@ -31,7 +31,11 @@ export class ConsentRequiredError extends Error {
 
 const USER_STORAGE_KEY = 'pcp.auth.user';
 const ACCESS_TOKEN_STORAGE_KEY = 'pcp.auth.accessToken';
-const REFRESH_TOKEN_STORAGE_KEY = 'pcp.auth.refreshToken';
+// Intentionally NOT persisted. Refresh tokens are long-lived credentials
+// — putting them in localStorage exposes them to any XSS bug. Mock keeps
+// them in memory only; F2.3's real implementation will hand them off to
+// an HttpOnly cookie set by the backend so JS can't read them at all.
+const LEGACY_REFRESH_STORAGE_KEY = 'pcp.auth.refreshToken';
 // Browser stalls feel more real than instant; matches a typical SA network.
 const FAKE_LATENCY_MS = 700;
 // Deliberately easy to demo — any password of 6+ chars works, except for
@@ -45,7 +49,10 @@ const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(
 export class AuthService {
   private readonly userSignal = signal<User | null>(this.loadUserFromStorage());
   private readonly accessTokenSignal = signal<string | null>(this.loadStored(ACCESS_TOKEN_STORAGE_KEY));
-  private refreshTokenValue: string | null = this.loadStored(REFRESH_TOKEN_STORAGE_KEY);
+  // In-memory only. Reload = no refresh token = next 401 signs the user
+  // out, which is the right mock behaviour (and forces F2.3 to make this
+  // explicit when it switches to an HttpOnly cookie).
+  private refreshTokenValue: string | null = null;
 
   readonly currentUser = this.userSignal.asReadonly();
   readonly accessToken = this.accessTokenSignal.asReadonly();
@@ -147,7 +154,9 @@ export class AuthService {
     this.refreshTokenValue = null;
     this.clearStorage(USER_STORAGE_KEY);
     this.clearStorage(ACCESS_TOKEN_STORAGE_KEY);
-    this.clearStorage(REFRESH_TOKEN_STORAGE_KEY);
+    // Sweep the legacy key in case an older build wrote a refresh token
+    // to localStorage before we tightened this up.
+    this.clearStorage(LEGACY_REFRESH_STORAGE_KEY);
   }
 
   private applySession(user: User): void {
@@ -158,7 +167,8 @@ export class AuthService {
     this.refreshTokenValue = refresh;
     this.persist(USER_STORAGE_KEY, JSON.stringify(user));
     this.persist(ACCESS_TOKEN_STORAGE_KEY, access);
-    this.persist(REFRESH_TOKEN_STORAGE_KEY, refresh);
+    // Refresh token deliberately stays in-memory only — see the
+    // LEGACY_REFRESH_STORAGE_KEY constant for the rationale.
   }
 
   /**
@@ -190,7 +200,8 @@ export class AuthService {
   private clearStaleSession(): void {
     this.clearStorage(USER_STORAGE_KEY);
     this.clearStorage(ACCESS_TOKEN_STORAGE_KEY);
-    this.clearStorage(REFRESH_TOKEN_STORAGE_KEY);
+    // Sweep the legacy refresh-token key — older builds wrote one.
+    this.clearStorage(LEGACY_REFRESH_STORAGE_KEY);
   }
 
   private loadStored(key: string): string | null {
