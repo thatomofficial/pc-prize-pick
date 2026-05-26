@@ -1,0 +1,19 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!--
+      The DriversMobileApi reference also sets TreatWarningsAsErrors +
+      AnalysisMode=All + SonarAnalyzer here. We intentionally do NOT enable
+      those yet: the existing pre-CQS code and the EF-generated migrations
+      trip a long tail of analyzer/style rules, and turning the gate on now
+      would fail the build for reasons unrelated to Command/Query Separation.
+      Enabling it is a separate, deliberate cleanup pass.
+    -->
+  </PropertyGroup>
+</Project>

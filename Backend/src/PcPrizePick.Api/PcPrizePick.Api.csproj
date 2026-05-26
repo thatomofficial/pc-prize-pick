@@ -1,20 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
-    <!--
-      Microsoft.EntityFrameworkCore.Design is referenced by
-      PcPrizePick.Infrastructure (where the DbContext and migrations live)
-      and flows here transitively, which is all the dotnet ef tooling
-      needs when this project is used as the startup project. Re-adding
-      it here would risk version drift with the Infrastructure ref.
-    -->
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
   </ItemGroup>
 
   <ItemGroup>
