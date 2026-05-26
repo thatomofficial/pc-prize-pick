@@ -2,7 +2,32 @@ export interface User {
   id: string;
   email: string;
   displayName: string;
+  cellPhone: string;
+  /** ISO 8601 timestamp the user ticked the Terms of Use box.
+   *  `null` for legacy accounts that predate consent collection — they
+   *  should be prompted to re-accept before doing anything that requires
+   *  consent on file. */
+  acceptedTermsAt: string | null;
+  /** ISO 8601 timestamp the user ticked the Privacy Policy box.
+   *  `null` for legacy accounts (see {@link acceptedTermsAt}). */
+  acceptedPrivacyAt: string | null;
 }
+
+/**
+ * Accepts South African mobile numbers in either local (`0XXXXXXXXX`) or
+ * international (`+27XXXXXXXXX`) form, after stripping spaces / dashes /
+ * parens. Returns the canonical `+27...` form, or the cleaned input
+ * unchanged when it can't be normalised — leaving validation to reject it.
+ */
+export const normaliseCellPhone = (raw: string): string => {
+  if (!raw) return '';
+  const clean = raw.replace(/[\s()\-]/g, '');
+  if (/^0\d{9}$/.test(clean)) return `+27${clean.slice(1)}`;
+  return clean;
+};
+
+export const isValidSaMobile = (normalised: string): boolean =>
+  /^\+27[6-8]\d{8}$/.test(normalised);
 
 export const deriveInitials = (displayName: string): string => {
   const parts = displayName

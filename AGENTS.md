@@ -26,7 +26,7 @@ one sample module (Competitions); payments / skill engine unimplemented.
 
 ## Repo layout
 
-```
+```txt
 pc-prize-pick/
 ├── Frontend/         # Angular 21 SPA
 ├── Backend/          # ASP.NET Core 10 API + EF Core + Postgres
@@ -41,6 +41,7 @@ and `.gitignore`.
 ## Frontend
 
 ### Stack
+
 Angular 21 (standalone components, signals, `@angular/build`) · TypeScript 5.9 ·
 SCSS with BEM · CSS custom properties as design tokens · Vitest + jsdom ·
 `en-ZA` locale (ZAR currency, SA date formats).
@@ -102,6 +103,7 @@ shared wave countdown. Per-card / per-build countdowns are deliberately absent.
 ## Backend
 
 ### Stack
+
 ASP.NET Core 10 (net10.0), minimal APIs, EF Core 9 + Npgsql, PostgreSQL 17.
 Clean Architecture lite — Api → Application + Infrastructure → Domain.
 

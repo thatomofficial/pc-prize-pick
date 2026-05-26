@@ -43,7 +43,7 @@ export class HowItWorksComponent {
     {
       num: '04',
       title: 'Take the rig or the cash',
-      body: 'Pick up the build from our Cape Town workshop or accept the cash equivalent within 48h.',
+      body: 'Pick up the build from our Johannesburg workshop or accept the cash equivalent within 48h.',
       detail: 'Cash always available',
     },
   ];

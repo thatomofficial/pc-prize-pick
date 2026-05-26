@@ -8,15 +8,24 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { AuthService, EmailAlreadyRegisteredError } from '../../_shared/services/auth.service';
+import {
+  AuthService,
+  ConsentRequiredError,
+  EmailAlreadyRegisteredError,
+  InvalidCellPhoneError,
+} from '../../_shared/services/auth.service';
+import { isValidSaMobile, normaliseCellPhone } from '../../_shared/models/user.model';
 
 type Status = 'idle' | 'submitting' | 'success';
 
 interface RegisterForm {
   email: FormControl<string>;
   displayName: FormControl<string>;
+  cellPhone: FormControl<string>;
   password: FormControl<string>;
   confirmPassword: FormControl<string>;
+  acceptedTermsOfUse: FormControl<boolean>;
+  acceptedPrivacyPolicy: FormControl<boolean>;
 }
 
 const matchPasswords = (group: AbstractControl): ValidationErrors | null => {
@@ -25,6 +34,15 @@ const matchPasswords = (group: AbstractControl): ValidationErrors | null => {
   if (!password || !confirm) return null;
   return password === confirm ? null : { mismatch: true };
 };
+
+const saMobileValidator = (control: AbstractControl): ValidationErrors | null => {
+  const raw = (control.value ?? '').toString();
+  if (!raw) return null; // Required handles empties.
+  return isValidSaMobile(normaliseCellPhone(raw)) ? null : { saMobile: true };
+};
+
+const mustBeTrueValidator = (control: AbstractControl): ValidationErrors | null =>
+  control.value === true ? null : { mustBeTrue: true };
 
 @Component({
   selector: 'app-register-screen',
@@ -41,9 +59,16 @@ export class RegisterScreenComponent {
     {
       email: new FormControl('', {
         nonNullable: true,
-        validators: [Validators.required, Validators.email],
+        validators: [Validators.required, Validators.email, Validators.maxLength(255)],
       }),
-      displayName: new FormControl('', { nonNullable: true }),
+      displayName: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.required, Validators.minLength(2), Validators.maxLength(120)],
+      }),
+      cellPhone: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.required, saMobileValidator],
+      }),
       password: new FormControl('', {
         nonNullable: true,
         validators: [Validators.required, Validators.minLength(6)],
@@ -51,6 +76,14 @@ export class RegisterScreenComponent {
       confirmPassword: new FormControl('', {
         nonNullable: true,
         validators: [Validators.required],
+      }),
+      acceptedTermsOfUse: new FormControl(false, {
+        nonNullable: true,
+        validators: [mustBeTrueValidator],
+      }),
+      acceptedPrivacyPolicy: new FormControl(false, {
+        nonNullable: true,
+        validators: [mustBeTrueValidator],
       }),
     },
     { validators: matchPasswords },
@@ -75,6 +108,10 @@ export class RegisterScreenComponent {
       switch (field) {
         case 'email':
           return 'Email is required.';
+        case 'displayName':
+          return 'Display name is required.';
+        case 'cellPhone':
+          return 'Cell phone is required.';
         case 'password':
           return 'Password is required.';
         case 'confirmPassword':
@@ -84,7 +121,16 @@ export class RegisterScreenComponent {
       }
     }
     if (control.hasError('email')) return 'Enter a valid email address.';
-    if (control.hasError('minlength')) return 'At least 6 characters.';
+    if (control.hasError('saMobile')) return 'Enter a valid SA mobile number (0XX… or +27XX…).';
+    if (control.hasError('minlength')) {
+      return field === 'displayName' ? 'At least 2 characters.' : 'At least 6 characters.';
+    }
+    if (control.hasError('maxlength')) return 'Too long.';
+    if (control.hasError('mustBeTrue')) {
+      return field === 'acceptedTermsOfUse'
+        ? 'You must accept the Terms of Use to register.'
+        : 'You must accept the Privacy Policy to register.';
+    }
     return 'Invalid value.';
   }
 
@@ -96,17 +142,33 @@ export class RegisterScreenComponent {
       return;
     }
 
-    const { email, password, displayName } = this.form.getRawValue();
+    const {
+      email,
+      password,
+      displayName,
+      cellPhone,
+      acceptedTermsOfUse,
+      acceptedPrivacyPolicy,
+    } = this.form.getRawValue();
     this.status.set('submitting');
     this.form.disable({ emitEvent: false });
 
     try {
-      await this.auth.signUp(email, password, displayName);
+      await this.auth.signUp(
+        email,
+        password,
+        displayName,
+        cellPhone,
+        acceptedTermsOfUse,
+        acceptedPrivacyPolicy,
+      );
       this.status.set('success');
       await this.router.navigateByUrl('/account');
     } catch (error) {
       const message =
-        error instanceof EmailAlreadyRegisteredError
+        error instanceof EmailAlreadyRegisteredError ||
+        error instanceof InvalidCellPhoneError ||
+        error instanceof ConsentRequiredError
           ? error.message
           : 'Something went wrong. Try again.';
       this.submitError.set(message);

@@ -4,8 +4,10 @@
     <Project Path="src/PcPrizePick.Application/PcPrizePick.Application.csproj" />
     <Project Path="src/PcPrizePick.Domain/PcPrizePick.Domain.csproj" />
     <Project Path="src/PcPrizePick.Infrastructure/PcPrizePick.Infrastructure.csproj" />
+    <Project Path="src/PcPrizePick.SharedKernel/PcPrizePick.SharedKernel.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/PcPrizePick.Tests/PcPrizePick.Tests.csproj" />
+    <Project Path="tests/PcPrizePick.ArchitectureTests/PcPrizePick.ArchitectureTests.csproj" />
   </Folder>
 </Solution>

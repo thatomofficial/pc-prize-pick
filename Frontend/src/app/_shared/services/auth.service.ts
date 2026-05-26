@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { User, deriveInitials } from '../models/user.model';
+import { User, deriveInitials, isValidSaMobile, normaliseCellPhone } from '../models/user.model';
 
 export class InvalidCredentialsError extends Error {
   constructor() {
@@ -15,7 +15,27 @@ export class EmailAlreadyRegisteredError extends Error {
   }
 }
 
-const STORAGE_KEY = 'pcp.auth.user';
+export class InvalidCellPhoneError extends Error {
+  constructor() {
+    super('Enter a valid SA mobile number (0XX… or +27XX…).');
+    this.name = 'InvalidCellPhoneError';
+  }
+}
+
+export class ConsentRequiredError extends Error {
+  constructor() {
+    super('You must accept the Terms of Use and Privacy Policy to register.');
+    this.name = 'ConsentRequiredError';
+  }
+}
+
+const USER_STORAGE_KEY = 'pcp.auth.user';
+const ACCESS_TOKEN_STORAGE_KEY = 'pcp.auth.accessToken';
+// Intentionally NOT persisted. Refresh tokens are long-lived credentials
+// — putting them in localStorage exposes them to any XSS bug. Mock keeps
+// them in memory only; F2.3's real implementation will hand them off to
+// an HttpOnly cookie set by the backend so JS can't read them at all.
+const LEGACY_REFRESH_STORAGE_KEY = 'pcp.auth.refreshToken';
 // Browser stalls feel more real than instant; matches a typical SA network.
 const FAKE_LATENCY_MS = 700;
 // Deliberately easy to demo — any password of 6+ chars works, except for
@@ -27,45 +47,80 @@ const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly userSignal = signal<User | null>(this.loadFromStorage());
+  private readonly userSignal = signal<User | null>(null);
+  private readonly accessTokenSignal = signal<string | null>(null);
+  // In-memory only. Reload = no refresh token = next 401 signs the user
+  // out, which is the right mock behaviour (and forces F2.3 to make this
+  // explicit when it switches to an HttpOnly cookie).
+  private refreshTokenValue: string | null = null;
 
   readonly currentUser = this.userSignal.asReadonly();
+  readonly accessToken = this.accessTokenSignal.asReadonly();
   readonly isAuthed = computed(() => this.userSignal() !== null);
   readonly initials = computed(() => {
     const user = this.userSignal();
     return user ? deriveInitials(user.displayName) : '';
   });
 
+  constructor() {
+    this.restoreSession();
+  }
+
   async signIn(email: string, password: string): Promise<User> {
     await wait(FAKE_LATENCY_MS);
-    if (email.trim().toLowerCase() === ALWAYS_FAILS_EMAIL) {
+    const normalisedEmail = email.trim().toLowerCase();
+    if (normalisedEmail === ALWAYS_FAILS_EMAIL) {
       throw new InvalidCredentialsError();
     }
     if (password.length < 6) {
       throw new InvalidCredentialsError();
     }
+    const now = new Date().toISOString();
     const user: User = {
       id: `mock-${Date.now().toString(36)}`,
-      email: email.trim(),
-      displayName: deriveDisplayNameFromEmail(email.trim()),
+      email: normalisedEmail,
+      displayName: deriveDisplayNameFromEmail(normalisedEmail),
+      cellPhone: '',
+      // Mock sign-in doesn't re-collect consent — assume the existing
+      // account already has it on file. Stamp `now` so the shape is
+      // non-null for downstream consumers.
+      acceptedTermsAt: now,
+      acceptedPrivacyAt: now,
     };
-    this.userSignal.set(user);
-    this.persist(user);
+    this.applySession(user);
     return user;
   }
 
-  async signUp(email: string, password: string, displayName?: string): Promise<User> {
+  async signUp(
+    email: string,
+    password: string,
+    displayName: string,
+    cellPhone: string,
+    acceptedTermsOfUse: boolean,
+    acceptedPrivacyPolicy: boolean,
+  ): Promise<User> {
     await wait(FAKE_LATENCY_MS);
-    if (email.trim().toLowerCase() === ALWAYS_FAILS_EMAIL) {
+    const normalisedEmail = email.trim().toLowerCase();
+    if (normalisedEmail === ALWAYS_FAILS_EMAIL) {
       throw new EmailAlreadyRegisteredError();
     }
+    const normalisedPhone = normaliseCellPhone(cellPhone);
+    if (!isValidSaMobile(normalisedPhone)) {
+      throw new InvalidCellPhoneError();
+    }
+    if (!acceptedTermsOfUse || !acceptedPrivacyPolicy) {
+      throw new ConsentRequiredError();
+    }
+    const now = new Date().toISOString();
     const user: User = {
       id: `mock-${Date.now().toString(36)}`,
-      email: email.trim(),
-      displayName: displayName?.trim() || deriveDisplayNameFromEmail(email.trim()),
+      email: normalisedEmail,
+      displayName: displayName.trim() || deriveDisplayNameFromEmail(normalisedEmail),
+      cellPhone: normalisedPhone,
+      acceptedTermsAt: now,
+      acceptedPrivacyAt: now,
     };
-    this.userSignal.set(user);
-    this.persist(user);
+    this.applySession(user);
     return user;
   }
 
@@ -79,34 +134,118 @@ export class AuthService {
     console.log('[mock-auth] password reset requested for', email);
   }
 
-  signOut(): void {
-    this.userSignal.set(null);
-    this.clearStorage();
+  /**
+   * Exchange the refresh token for a fresh access token. Returns `true` when
+   * a new access token is now in `accessToken()`. The HTTP `authInterceptor`
+   * calls this once on a 401 before giving up and signing the user out.
+   *
+   * Mock implementation: succeeds whenever a refresh token is present.
+   * Real impl (F2.3) will POST to `/auth/refresh` and time the rotation.
+   */
+  async refreshSession(): Promise<boolean> {
+    await wait(FAKE_LATENCY_MS);
+    const user = this.userSignal();
+    if (!user || !this.refreshTokenValue) return false;
+    const refreshed = generateMockJwt(user.id);
+    this.accessTokenSignal.set(refreshed);
+    this.persist(ACCESS_TOKEN_STORAGE_KEY, refreshed);
+    return true;
   }
 
-  private loadFromStorage(): User | null {
+  signOut(): void {
+    this.userSignal.set(null);
+    this.accessTokenSignal.set(null);
+    this.refreshTokenValue = null;
+    this.clearStorage(USER_STORAGE_KEY);
+    this.clearStorage(ACCESS_TOKEN_STORAGE_KEY);
+    // Sweep the legacy key in case an older build wrote a refresh token
+    // to localStorage before we tightened this up.
+    this.clearStorage(LEGACY_REFRESH_STORAGE_KEY);
+  }
+
+  private applySession(user: User): void {
+    const access = generateMockJwt(user.id);
+    const refresh = generateMockRefresh(user.id);
+    this.userSignal.set(user);
+    this.accessTokenSignal.set(access);
+    this.refreshTokenValue = refresh;
+    this.persist(USER_STORAGE_KEY, JSON.stringify(user));
+    this.persist(ACCESS_TOKEN_STORAGE_KEY, access);
+    // Refresh token deliberately stays in-memory only — see the
+    // LEGACY_REFRESH_STORAGE_KEY constant for the rationale.
+  }
+
+  /**
+   * Restore a persisted session at startup. The user blob is the source of
+   * truth and the access token is coupled to it: we only adopt a stored
+   * token when a valid user is also present, and vice versa. Any partial or
+   * tampered shape — a token with no user, a user with no token, a corrupt
+   * user blob — is treated as stale and purged wholesale, so we never end up
+   * attaching a bearer token while `isAuthed()` is false (or claiming the
+   * user is signed in with no token to send). The refresh token is in-memory
+   * only, so a reload always lands here with no refresh capability until the
+   * next sign-in.
+   */
+  private restoreSession(): void {
+    const user = this.loadUserFromStorage();
+    const accessToken = this.loadStored(ACCESS_TOKEN_STORAGE_KEY);
+    if (!user || !accessToken) {
+      this.clearStaleSession();
+      return;
+    }
+    this.userSignal.set(user);
+    this.accessTokenSignal.set(accessToken);
+  }
+
+  /**
+   * Parse the persisted user blob and validate every required field is
+   * present + the right type before handing it back. Old localStorage
+   * entries from prior schemas (no cellPhone, no consent timestamps) would
+   * otherwise deserialise into half-populated `User` objects. Returns null
+   * for any shape we don't recognise — missing, non-JSON, or failing the
+   * field guard; purging is the caller's job (see `restoreSession`).
+   */
+  private loadUserFromStorage(): User | null {
+    const raw = this.loadStored(USER_STORAGE_KEY);
+    if (!raw) return null;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+    return isValidStoredUser(parsed) ? parsed : null;
+  }
+
+  private clearStaleSession(): void {
+    this.clearStorage(USER_STORAGE_KEY);
+    this.clearStorage(ACCESS_TOKEN_STORAGE_KEY);
+    // Sweep the legacy refresh-token key — older builds wrote one.
+    this.clearStorage(LEGACY_REFRESH_STORAGE_KEY);
+  }
+
+  private loadStored(key: string): string | null {
     if (typeof localStorage === 'undefined') return null;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as User) : null;
+      return localStorage.getItem(key);
     } catch {
       return null;
     }
   }
 
-  private persist(user: User): void {
+  private persist(key: string, value: string): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+      localStorage.setItem(key, value);
     } catch {
       // Quota exceeded or storage unavailable — silently ignore for mock.
     }
   }
 
-  private clearStorage(): void {
+  private clearStorage(key: string): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(key);
     } catch {
       // ignore
     }
@@ -121,4 +260,57 @@ const deriveDisplayNameFromEmail = (email: string): string => {
     .filter((p) => p.length > 0)
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(' ');
+};
+
+/**
+ * Runtime shape guard for what we pulled out of localStorage. Required
+ * fields must be present and the right primitive — anything else is
+ * treated as a stale blob from an older build and discarded.
+ *
+ * `cellPhone` is allowed to be an empty string because the existing
+ * sign-in flow stamps it that way (registration is the only place that
+ * collects it), but we still require it to *exist* as a string so newer
+ * code can rely on `user.cellPhone` not being `undefined`.
+ */
+const isOptionalIsoString = (value: unknown): value is string | null =>
+  value === null || (typeof value === 'string' && value.length > 0);
+
+const isValidStoredUser = (value: unknown): value is User => {
+  if (typeof value !== 'object' || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate['id'] === 'string' &&
+    candidate['id'].length > 0 &&
+    typeof candidate['email'] === 'string' &&
+    candidate['email'].length > 0 &&
+    typeof candidate['displayName'] === 'string' &&
+    typeof candidate['cellPhone'] === 'string' &&
+    // Legacy accounts may carry `null` here; only reject wrong types.
+    isOptionalIsoString(candidate['acceptedTermsAt']) &&
+    isOptionalIsoString(candidate['acceptedPrivacyAt'])
+  );
+};
+
+// Mock JWT shaped like header.payload.signature so the interceptor and
+// downstream code can treat it as a real bearer. Not signed — F2.1 will
+// replace this once a real backend issues tokens.
+const generateMockJwt = (subject: string): string => {
+  const header = base64UrlEncode(JSON.stringify({ alg: 'none', typ: 'JWT' }));
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const payload = base64UrlEncode(
+    JSON.stringify({ sub: subject, iat: nowSeconds, exp: nowSeconds + 3600 }),
+  );
+  return `${header}.${payload}.mock`;
+};
+
+const generateMockRefresh = (subject: string): string =>
+  base64UrlEncode(`${subject}:${Date.now()}:refresh`);
+
+const base64UrlEncode = (input: string): string => {
+  if (typeof btoa !== 'function') {
+    // Browser-only mock; bail out with a stable placeholder rather than
+    // dragging in a polyfill we don't otherwise need.
+    return 'unsupported';
+  }
+  return btoa(input).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 };
