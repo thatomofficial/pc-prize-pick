@@ -47,8 +47,8 @@ const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly userSignal = signal<User | null>(this.loadUserFromStorage());
-  private readonly accessTokenSignal = signal<string | null>(this.loadStored(ACCESS_TOKEN_STORAGE_KEY));
+  private readonly userSignal = signal<User | null>(null);
+  private readonly accessTokenSignal = signal<string | null>(null);
   // In-memory only. Reload = no refresh token = next 401 signs the user
   // out, which is the right mock behaviour (and forces F2.3 to make this
   // explicit when it switches to an HttpOnly cookie).
@@ -61,6 +61,10 @@ export class AuthService {
     const user = this.userSignal();
     return user ? deriveInitials(user.displayName) : '';
   });
+
+  constructor() {
+    this.restoreSession();
+  }
 
   async signIn(email: string, password: string): Promise<User> {
     await wait(FAKE_LATENCY_MS);
@@ -172,13 +176,34 @@ export class AuthService {
   }
 
   /**
+   * Restore a persisted session at startup. The user blob is the source of
+   * truth and the access token is coupled to it: we only adopt a stored
+   * token when a valid user is also present, and vice versa. Any partial or
+   * tampered shape — a token with no user, a user with no token, a corrupt
+   * user blob — is treated as stale and purged wholesale, so we never end up
+   * attaching a bearer token while `isAuthed()` is false (or claiming the
+   * user is signed in with no token to send). The refresh token is in-memory
+   * only, so a reload always lands here with no refresh capability until the
+   * next sign-in.
+   */
+  private restoreSession(): void {
+    const user = this.loadUserFromStorage();
+    const accessToken = this.loadStored(ACCESS_TOKEN_STORAGE_KEY);
+    if (!user || !accessToken) {
+      this.clearStaleSession();
+      return;
+    }
+    this.userSignal.set(user);
+    this.accessTokenSignal.set(accessToken);
+  }
+
+  /**
    * Parse the persisted user blob and validate every required field is
    * present + the right type before handing it back. Old localStorage
    * entries from prior schemas (no cellPhone, no consent timestamps) would
-   * otherwise deserialise into half-populated `User` objects, making
-   * `isAuthed()` true while downstream code reads `undefined`. When we
-   * detect a stale shape we purge the whole session — user + both tokens —
-   * so the next sign-in starts from a clean state.
+   * otherwise deserialise into half-populated `User` objects. Returns null
+   * for any shape we don't recognise — missing, non-JSON, or failing the
+   * field guard; purging is the caller's job (see `restoreSession`).
    */
   private loadUserFromStorage(): User | null {
     const raw = this.loadStored(USER_STORAGE_KEY);
@@ -187,14 +212,9 @@ export class AuthService {
     try {
       parsed = JSON.parse(raw);
     } catch {
-      this.clearStaleSession();
       return null;
     }
-    if (!isValidStoredUser(parsed)) {
-      this.clearStaleSession();
-      return null;
-    }
-    return parsed;
+    return isValidStoredUser(parsed) ? parsed : null;
   }
 
   private clearStaleSession(): void {

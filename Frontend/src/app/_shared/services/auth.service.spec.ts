@@ -155,6 +155,36 @@ describe('AuthService session restore', () => {
     expect(auth.isAuthed()).toBe(false);
     expect(auth.accessToken()).toBeNull();
   });
+
+  it('purges a stranded access token when no user is stored', () => {
+    // Token present but no user (tampering / partial clear / older build).
+    // The token must not survive: otherwise isAuthed() is false while the
+    // interceptor still has a bearer token to attach.
+    localStorage.setItem(ACCESS_KEY, 'stranded-access');
+
+    TestBed.configureTestingModule({});
+    const auth = TestBed.inject(AuthService);
+
+    expect(auth.currentUser()).toBeNull();
+    expect(auth.isAuthed()).toBe(false);
+    expect(auth.accessToken()).toBeNull();
+    expect(localStorage.getItem(ACCESS_KEY)).toBeNull();
+  });
+
+  it('purges a valid stored user that has no access token', () => {
+    // The inverse partial state: a user with no token is just as broken.
+    // Restore is all-or-nothing so isAuthed() never claims true with no
+    // token to send.
+    localStorage.setItem(USER_KEY, JSON.stringify(validStoredUser));
+
+    TestBed.configureTestingModule({});
+    const auth = TestBed.inject(AuthService);
+
+    expect(auth.currentUser()).toBeNull();
+    expect(auth.isAuthed()).toBe(false);
+    expect(auth.accessToken()).toBeNull();
+    expect(localStorage.getItem(USER_KEY)).toBeNull();
+  });
 });
 
 describe('AuthService refresh-token hygiene', () => {
