@@ -7,7 +7,10 @@ import { ApiError, ApiErrorCode } from '../models/api-error.model';
 export interface ApiRequestOptions {
   /** Query-string parameters. Values stringified by HttpClient. */
   params?: Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>;
-  /** Extra request headers. `x-request-id` is always injected automatically. */
+  /**
+   * Extra request headers. `x-request-id` is owned by this service and
+   * injected fresh per request — any `x-request-id` passed here is ignored.
+   */
   headers?: Record<string, string>;
 }
 
@@ -93,6 +96,13 @@ export class ApiClientService {
     });
     if (options?.headers) {
       for (const [key, value] of Object.entries(options.headers)) {
+        // The correlation id is owned by this service and injected fresh per
+        // request — never let a caller override it (accidental id reuse would
+        // break request tracing). Header names are case-insensitive, so guard
+        // against `X-Request-Id`, `X-REQUEST-ID`, etc. too.
+        if (key.toLowerCase() === CORRELATION_HEADER) {
+          continue;
+        }
         headers = headers.set(key, value);
       }
     }

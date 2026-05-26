@@ -59,6 +59,20 @@ describe('ApiClientService', () => {
     req.flush({});
   });
 
+  it('ignores a caller-supplied x-request-id and keeps the auto-generated one', () => {
+    // Two calls reusing the same caller id must still get distinct ids, and
+    // never the caller's value — the service owns the correlation id.
+    service.get('a', { headers: { 'x-request-id': 'caller-reused-id' } }).subscribe();
+    service.get('b', { headers: { 'X-Request-ID': 'caller-reused-id' } }).subscribe();
+    const requests = http.match(() => true);
+    const idA = requests[0].request.headers.get('x-request-id');
+    const idB = requests[1].request.headers.get('x-request-id');
+    expect(idA).not.toBe('caller-reused-id');
+    expect(idB).not.toBe('caller-reused-id');
+    expect(idA).not.toBe(idB);
+    requests.forEach((req) => req.flush({}));
+  });
+
   it('serialises query params, supporting arrays', () => {
     service
       .get('search', { params: { q: 'rtx', limit: 5, tag: ['gpu', 'desktop'] } })
