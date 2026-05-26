@@ -8,15 +8,11 @@
 
   <ItemGroup>
     <!--
-      EF Core Design assets flow transitively to the API startup project so
-      the dotnet ef tooling can resolve them. PrivateAssets is relaxed to
-      "contentfiles;analyzers" so build assets reach consumers while content
-      and analyzers stay scoped here. Version is managed centrally in
-      Directory.Packages.props.
+      The DbContext + migrations live here, but they only need the EF Core
+      runtime + Npgsql provider to compile. Microsoft.EntityFrameworkCore.Design
+      (a design-time-only package) is referenced by the API startup project
+      instead — dotnet ef requires the startup project to reference it.
     -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
-      <PrivateAssets>contentfiles;analyzers</PrivateAssets>
-    </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
   </ItemGroup>

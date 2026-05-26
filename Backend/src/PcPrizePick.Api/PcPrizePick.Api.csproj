@@ -4,6 +4,16 @@
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
+    <!--
+      Design-time only: dotnet ef requires the startup project to reference it
+      (this is the startup project for migrations targeting Infrastructure).
+      PrivateAssets=all keeps it out of published output and from flowing to
+      consumers (e.g. the ArchitectureTests project that references this one).
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
